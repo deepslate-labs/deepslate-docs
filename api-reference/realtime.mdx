@@ -1,0 +1,284 @@
+---
+title: 'Speeq WebSocket Protocol'
+description: 'Message schemas for the Speeq WebSocket protocol'
+icon: 'wave-pulse'
+---
+
+The Speeq WebSocket Protocol uses Protocol Buffers for message encoding. All messages are wrapped in either `ServiceBoundMessage` (client to server) or `ClientBoundMessage` (server to client).
+
+<Note>
+Messages are binary-encoded protobuf. JSON examples below are shown for readability. [Download the proto file](/api-reference/realtime.proto).
+</Note>
+
+## Connection
+
+```
+wss://app.phonebot.io/v1/realtime
+```
+
+Authentication via Bearer token in the connection headers.
+
+---
+
+## Client Messages
+
+Messages sent from client to server, wrapped in `ServiceBoundMessage`.
+
+<AccordionGroup>
+  <Accordion title="InitializeSessionRequest" icon="play" defaultOpen>
+    **Must be the first message sent.** Configures the session parameters.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `input_audio_line` | AudioLineConfiguration | Input audio format configuration |
+    | `output_audio_line` | AudioLineConfiguration | Output audio format configuration |
+    | `vad_configuration` | VadConfiguration | Voice activity detection settings |
+    | `inference_configuration` | InferenceConfiguration | System prompt and model behavior |
+    | `tts_configuration` | TtsConfiguration | Optional TTS provider config (e.g., ElevenLabs) |
+
+    ```json
+    {
+      "initializeSessionRequest": {
+        "inputAudioLine": {
+          "sampleRate": 16000,
+          "channelCount": 1,
+          "sampleFormat": "SIGNED_16_BIT"
+        },
+        "outputAudioLine": {
+          "sampleRate": 16000,
+          "channelCount": 1,
+          "sampleFormat": "SIGNED_16_BIT"
+        },
+        "vadConfiguration": {
+          "confidenceThreshold": 0.5,
+          "minVolume": 0.1,
+          "startDuration": { "seconds": 0, "nanos": 200000000 },
+          "stopDuration": { "seconds": 0, "nanos": 500000000 },
+          "backbufferDuration": { "seconds": 1, "nanos": 0 }
+        },
+        "inferenceConfiguration": {
+          "systemPrompt": "You are a helpful assistant."
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="UserInput" icon="microphone">
+    Audio data from the user's microphone.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `packet_id` | uint64 | Client-defined packet identifier for tracking |
+    | `audio_data` | AudioData | Raw PCM audio bytes |
+
+    ```json
+    {
+      "userInput": {
+        "packetId": 1,
+        "audioData": {
+          "data": "<base64-encoded-pcm>"
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="UpdateToolDefinitionsRequest" icon="wrench">
+    Define or update available tools. Replaces all existing definitions.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `tool_definitions` | ToolDefinition[] | List of tool definitions |
+
+    Each `ToolDefinition` contains:
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `name` | string | Tool identifier used by the model |
+    | `description` | string | Purpose and functionality description |
+    | `parameters` | object | JSON Schema for tool parameters |
+
+    ```json
+    {
+      "updateToolDefinitionsRequest": {
+        "toolDefinitions": [
+          {
+            "name": "get_weather",
+            "description": "Get current weather for a location",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "location": { "type": "string" }
+              },
+              "required": ["location"]
+            }
+          }
+        ]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ToolCallResponse" icon="reply">
+    Response to a tool call request from the server.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `id` | string | Must match the `id` from `ToolCallRequest` |
+    | `result` | string | Tool execution result (any format the model understands) |
+
+    <Warning>
+    Every `ToolCallRequest` **must** receive a corresponding `ToolCallResponse`, even if execution fails.
+    </Warning>
+
+    ```json
+    {
+      "toolCallResponse": {
+        "id": "call_abc123",
+        "result": "{\"temperature\": 22, \"condition\": \"sunny\"}"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Server Messages
+
+Messages sent from server to client, wrapped in `ClientBoundMessage`.
+
+<AccordionGroup>
+  <Accordion title="AssistantTextFragment" icon="text" defaultOpen>
+    Streamed text output as tokens arrive. Used when TTS is not configured.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `text` | string | Text content of this fragment |
+
+    ```json
+    {
+      "assistantTextFragment": {
+        "text": "Hello, how can I help you?"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="AssistantAudioChunk" icon="volume-high">
+    TTS audio output when a TTS provider is configured.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `audio` | AudioData | Audio bytes matching output_audio_line config |
+    | `transcript` | string | Optional text that was spoken |
+
+    ```json
+    {
+      "assistantAudioChunk": {
+        "audio": {
+          "data": "<base64-encoded-pcm>"
+        },
+        "transcript": "Hello, how can I help you?"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ToolCallRequest" icon="terminal">
+    Model requests to execute a tool.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `id` | string | Unique identifier for this request |
+    | `name` | string | Name of the tool to call |
+    | `parameters` | object | Parameters matching the tool's schema |
+
+    ```json
+    {
+      "toolCallRequest": {
+        "id": "call_abc123",
+        "name": "get_weather",
+        "parameters": {
+          "location": "Amsterdam"
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Type Definitions
+
+### AudioLineConfiguration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sample_rate` | uint32 | Sample rate in Hz (e.g., 16000) |
+| `channel_count` | uint32 | Number of channels (typically 1 for mono) |
+| `sample_format` | SampleFormat | Audio sample format |
+
+### SampleFormat
+
+| Value | Description |
+|-------|-------------|
+| `UNSIGNED_8_BIT` | 8-bit unsigned integer samples |
+| `SIGNED_16_BIT` | 16-bit signed integer samples (recommended) |
+| `SIGNED_32_BIT` | 32-bit signed integer samples |
+| `FLOAT_32_BIT` | 32-bit floating point (0.0 to 1.0) |
+| `FLOAT_64_BIT` | 64-bit floating point (0.0 to 1.0) |
+
+### VadConfiguration
+
+Voice Activity Detection settings.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `confidence_threshold` | float | Min confidence for speech detection (0.0-1.0) |
+| `min_volume` | float | Min volume level for speech (0.0-1.0) |
+| `start_duration` | Duration | Speech duration to trigger start |
+| `stop_duration` | Duration | Silence duration to trigger end |
+| `backbuffer_duration` | Duration | Audio buffer before speech start (recommended: 1s) |
+
+### TtsConfiguration
+
+Optional text-to-speech configuration. If omitted, raw text fragments are sent.
+
+<Tabs>
+  <Tab title="ElevenLabs">
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `api_key` | string | Your ElevenLabs API key |
+    | `voice_id` | string | Voice ID (e.g., "21m00Tcm4TlvDq8ikWAM") |
+    | `model_id` | string | Optional model ID (e.g., "eleven_turbo_v2") |
+
+    ```json
+    {
+      "ttsConfiguration": {
+        "elevenLabs": {
+          "apiKey": "sk-...",
+          "voiceId": "21m00Tcm4TlvDq8ikWAM",
+          "modelId": "eleven_turbo_v2"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Duration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `seconds` | uint64 | Whole seconds |
+| `nanos` | uint32 | Nanoseconds component |
+
+```json
+// 500 milliseconds
+{ "seconds": 0, "nanos": 500000000 }
+
+// 1.5 seconds
+{ "seconds": 1, "nanos": 500000000 }
+```

@@ -1,0 +1,119 @@
+---
+title: 'WebSocket'
+description: 'Connect to Deepslate Realtime via WebSocket for server-side voice streaming'
+icon: 'server'
+---
+
+WebSocket is ideal for backend services, telephony integrations, and environments where you control the network.
+
+## Connection Endpoint
+
+```
+wss://app.phonebot.io/v1/realtime
+```
+
+## Authentication
+
+Include your API key in the connection headers:
+
+```javascript
+const ws = new WebSocket('wss://app.phonebot.io/v1/realtime', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  }
+});
+```
+
+## Message Format
+
+All messages are JSON-encoded with a `type` field:
+
+```json
+{
+  "type": "audio.input",
+  "data": "<base64-encoded-audio>"
+}
+```
+
+## Message Types
+
+<AccordionGroup>
+  <Accordion title="Client Messages" icon="arrow-up">
+    | Type | Description |
+    |------|-------------|
+    | `session.start` | Initialize a session with assistant/agent configuration |
+    | `audio.input` | Send audio data (base64 PCM or Opus) |
+    | `audio.end` | Signal end of user speech |
+    | `session.end` | Gracefully close the session |
+  </Accordion>
+
+  <Accordion title="Server Messages" icon="arrow-down">
+    | Type | Description |
+    |------|-------------|
+    | `session.ready` | Session initialized, ready for audio |
+    | `audio.output` | AI-generated speech audio |
+    | `transcript.partial` | Real-time partial transcription |
+    | `transcript.final` | Final transcription of utterance |
+    | `session.ended` | Session closed |
+    | `error` | Error details |
+  </Accordion>
+</AccordionGroup>
+
+## Example: Node.js Client
+
+```javascript
+import WebSocket from 'ws';
+
+const ws = new WebSocket('wss://app.phonebot.io/v1/realtime', {
+  headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
+});
+
+ws.on('open', () => {
+  ws.send(JSON.stringify({
+    type: 'session.start',
+    assistant_id: 'asst_xxx'
+  }));
+});
+
+ws.on('message', (data) => {
+  const msg = JSON.parse(data);
+
+  if (msg.type === 'audio.output') {
+    // Play or forward the audio
+    playAudio(Buffer.from(msg.data, 'base64'));
+  }
+});
+```
+
+## Audio Configuration
+
+<Note>
+Deepslate uses 16kHz mono audio by default. Ensure your audio input matches this format for optimal performance.
+</Note>
+
+### Supported Formats
+
+| Format | Sample Rate | Channels | Use Case |
+|--------|-------------|----------|----------|
+| PCM 16-bit | 16000 Hz | Mono | Raw audio |
+| Opus | 16000 Hz | Mono | Compressed audio |
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="Connection Errors" icon="triangle-exclamation">
+    | Code | Description | Resolution |
+    |------|-------------|------------|
+    | `auth_failed` | Invalid or expired API key | Check your API key |
+    | `rate_limited` | Too many concurrent sessions | Reduce connection rate |
+    | `invalid_config` | Invalid assistant/agent ID | Verify resource exists |
+  </Accordion>
+
+  <Accordion title="Runtime Errors" icon="bug">
+    | Code | Description | Resolution |
+    |------|-------------|------------|
+    | `audio_format` | Unsupported audio format | Use PCM or Opus |
+    | `session_timeout` | Session idle too long | Send keepalive or reconnect |
+    | `internal_error` | Server-side error | Retry with backoff |
+  </Accordion>
+</AccordionGroup>

@@ -1,33 +1,76 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Deepslate REST API for managing voice AI assistants and agents'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Base URL
 
-## Welcome
-
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://app.phonebot.io
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require Bearer token authentication:
+
+```bash
+curl -X GET "https://app.phonebot.io/api/v1/vendors" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Response format
+
+All responses follow a consistent structure:
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "success": true,
+  "message": "Human-readable message",
+  "data": { },
+  "timestamp": "2025-04-17T14:23:30Z",
+  "traceId": "correlation-id"
+}
 ```
+
+### Paginated responses
+
+List endpoints return paginated data:
+
+```json
+{
+  "success": true,
+  "data": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 100,
+  "totalPages": 5,
+  "timestamp": "2025-04-17T14:23:30Z"
+}
+```
+
+## Pagination parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 0 | Page number (0-indexed) |
+| `size` | integer | 20 | Items per page |
+| `sort` | string | `name,asc` | Sort criteria (e.g., `name,desc`) |
+
+## Path parameters
+
+All resource endpoints use UUID identifiers:
+- `vendorId` - Vendor identifier
+- `organizationId` - Organization identifier
+- `assistantId` - Assistant identifier
+- `agentId` - Agent identifier
+- `planId` - Plan identifier
+
+## Error responses
+
+| Status | Description                                                       |
+|--------|-------------------------------------------------------------------|
+| 400    | Bad Request - Invalid input data                                  |
+| 401    | Unauthorized - Invalid or missing token                           |
+| 403    | Forbidden - Insufficient permissions                              |
+| 404    | Not Found - Resource does not exist                               |
+| 409    | Conflict - Resource cannot be modified (e.g., dependencies exist) |

@@ -1,72 +1,110 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
-    "version": "1.0.0"
+    "title": "Deepslate",
+    "description": "OpenAPI specification of the public Deepslate API",
+    "version": "v1.0"
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://app.phonebot.io:80",
+      "description": "Generated server url"
     }
   ],
-  "security": [
+  "tags": [
     {
-      "bearerAuth": []
+      "name": "Assistant Management",
+      "description": "API endpoints for managing Assistants within an Organization"
+    },
+    {
+      "name": "Plan Management",
+      "description": "API endpoints for managing pricing Plans within a Vendor"
+    },
+    {
+      "name": "Organization Management",
+      "description": "API endpoints for managing Organizations within a Vendor"
+    },
+    {
+      "name": "Agent Task Management",
+      "description": "API endpoints for retrieving Agent Tasks"
+    },
+    {
+      "name": "Vendor Management",
+      "description": "API endpoints for managing Vendors"
+    },
+    {
+      "name": "Agent Management",
+      "description": "API endpoints for managing Agents within an Organization"
     }
   ],
   "paths": {
-    "/plants": {
+    "/api/v1/vendors/{vendorId}": {
       "get": {
-        "description": "Returns all plants from the system that the user has access to",
+        "tags": [
+          "Vendor Management"
+        ],
+        "summary": "Get Vendor Details",
+        "description": "Retrieves detailed information about a specific vendor, including its associated organizations.",
+        "operationId": "getVendor",
         "parameters": [
           {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
           }
         ],
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "Successfully retrieved vendor details",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
+                  "$ref": "#/components/schemas/VendorDetailsResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to view this vendor"
+          },
+          "404": {
+            "description": "Vendor not found"
           }
         }
       },
-      "post": {
-        "description": "Creates a new plant in the store",
+      "put": {
+        "tags": [
+          "Vendor Management"
+        ],
+        "summary": "Update Vendor",
+        "description": "Updates the details of an existing vendor.",
+        "operationId": "updateVendor",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor to update (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
         "requestBody": {
-          "description": "Plant to add to the store",
+          "description": "Vendor update data",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/VendorUpdate"
               }
             }
           },
@@ -74,79 +112,1561 @@
         },
         "responses": {
           "200": {
-            "description": "plant response",
+            "description": "Vendor successfully updated",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "unexpected error",
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to update this vendor"
+          },
+          "404": {
+            "description": "Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Vendor Management"
+        ],
+        "summary": "Delete Vendor",
+        "description": "Deletes a specific vendor. This might cascade or be restricted based on associated organizations or other dependencies.",
+        "operationId": "deleteVendor",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor to delete (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vendor successfully deleted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to delete this vendor"
+          },
+          "404": {
+            "description": "Vendor not found"
+          },
+          "409": {
+            "description": "Conflict - Vendor cannot be deleted (e.g., due to existing organizations)"
           }
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
+    "/api/v1/vendors/{vendorId}/plans/{planId}": {
+      "get": {
+        "tags": [
+          "Plan Management"
+        ],
+        "summary": "Get Plan Details",
+        "description": "Retrieves detailed information about a specific plan.",
+        "operationId": "getPlan",
         "parameters": [
           {
-            "name": "id",
+            "name": "vendorId",
             "in": "path",
-            "description": "ID of plant to delete",
+            "description": "ID of the Vendor (UUID)",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "description": "ID of the Plan (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "c4a9e3f8-a3b2-4d1c-8b7e-5a9f0d1e2c3b"
           }
         ],
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
+          "200": {
+            "description": "Successfully retrieved plan details",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/PlanDetailsResponse"
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to view this plan"
+          },
+          "404": {
+            "description": "Plan or Vendor not found"
           }
         }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
+      },
+      "put": {
+        "tags": [
+          "Plan Management"
+        ],
+        "summary": "Update Plan",
+        "description": "Updates the details of an existing pricing plan.",
+        "operationId": "updatePlan",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "description": "ID of the Plan to update (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "c4a9e3f8-a3b2-4d1c-8b7e-5a9f0d1e2c3b"
+          }
+        ],
         "requestBody": {
-          "description": "Plant added to the store",
+          "description": "Plan update data",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/PlanUpdate"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+            "description": "Plan successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to update this plan"
+          },
+          "404": {
+            "description": "Plan or Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Plan Management"
+        ],
+        "summary": "Delete Plan",
+        "description": "Deletes a specific pricing plan. May be restricted if the plan is currently in use.",
+        "operationId": "deletePlan",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "planId",
+            "in": "path",
+            "description": "ID of the Plan to delete (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "c4a9e3f8-a3b2-4d1c-8b7e-5a9f0d1e2c3b"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to delete this plan"
+          },
+          "404": {
+            "description": "Plan or Vendor not found"
+          },
+          "409": {
+            "description": "Conflict - Plan cannot be deleted (e.g., currently assigned to organizations)"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}": {
+      "get": {
+        "tags": [
+          "Organization Management"
+        ],
+        "summary": "Get Organization Details",
+        "description": "Retrieves detailed information about a specific organization, including contact info and associated plan.",
+        "operationId": "getOrganization",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved organization details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to view this organization"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Organization Management"
+        ],
+        "summary": "Update Organization",
+        "description": "Updates the details of an existing organization.",
+        "operationId": "updateOrganization",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization to update (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Organization successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to update this organization"
+          },
+          "404": {
+            "description": "Organization, Vendor or Plan not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Organization Management"
+        ],
+        "summary": "Delete Organization",
+        "description": "Deletes a specific organization. May be restricted if the organization has active agents, assistants, etc.",
+        "operationId": "deleteOrganization",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization to delete (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to delete this organization"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          },
+          "409": {
+            "description": "Conflict - Organization cannot be deleted (e.g., due to existing agents/assistants)"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants/{assistantId}": {
+      "get": {
+        "tags": [
+          "Assistant Management"
+        ],
+        "summary": "Get Assistant Details",
+        "description": "Retrieves detailed information about a specific assistant.",
+        "operationId": "getAssistant",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "assistantId",
+            "in": "path",
+            "description": "ID of the Assistant (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved assistant details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Assistant, Organization or Vendor not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Assistant Management"
+        ],
+        "summary": "Update Assistant",
+        "description": "Updates an existing assistant's configuration. Allows updating details, extensions, and call event hooks. Extensions and hooks can be modified or added (if ID is provided for update, null/missing for creation within the list).",
+        "operationId": "updateAssistant",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "assistantId",
+            "in": "path",
+            "description": "ID of the Assistant to update (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "requestBody": {
+          "description": "Assistant update data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Assistant successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Assistant, Organization or Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Assistant Management"
+        ],
+        "summary": "Delete Assistant",
+        "description": "Deletes a specific assistant.",
+        "operationId": "deleteAssistant",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "assistantId",
+            "in": "path",
+            "description": "ID of the Assistant to delete (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assistant successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Assistant, Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}": {
+      "get": {
+        "tags": [
+          "Agent Management"
+        ],
+        "summary": "Get Agent Details",
+        "description": "Retrieves detailed information about a specific agent.",
+        "operationId": "getAgent",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved agent details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Agent, Organization or Vendor not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agent Management"
+        ],
+        "summary": "Update Agent",
+        "description": "Updates an existing agent's configuration. Allows updating details, extensions, and call event hooks. Extensions and hooks can be modified or added (if ID is provided for update, null/missing for creation within the list).",
+        "operationId": "updateAgent",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent to update (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          }
+        ],
+        "requestBody": {
+          "description": "Agent update data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Agent successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Agent, Organization or Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Agent Management"
+        ],
+        "summary": "Delete Agent",
+        "description": "Deletes a specific agent.",
+        "operationId": "deleteAgent",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent to delete (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Agent, Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors": {
+      "get": {
+        "tags": [
+          "Vendor Management"
+        ],
+        "summary": "List Vendors",
+        "description": "Retrieves a paginated list of vendors accessible to the user.",
+        "operationId": "getVendors",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "name,desc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of vendors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Vendor Management"
+        ],
+        "summary": "Create Vendor",
+        "description": "Creates a new vendor.",
+        "operationId": "createVendor",
+        "requestBody": {
+          "description": "Vendor creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Vendor successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to create vendors"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/plans": {
+      "get": {
+        "tags": [
+          "Plan Management"
+        ],
+        "summary": "List Plans",
+        "description": "Retrieves a paginated list of plans belonging to a specific vendor.",
+        "operationId": "getPlans",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "name,desc"
+          },
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User cannot access this vendor's plans"
+          },
+          "404": {
+            "description": "Vendor not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Plan Management"
+        ],
+        "summary": "Create Plan",
+        "description": "Creates a new pricing plan for the specified vendor.",
+        "operationId": "createPlan",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
+        "requestBody": {
+          "description": "Plan creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Plan successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to create plans for this vendor"
+          },
+          "404": {
+            "description": "Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations": {
+      "get": {
+        "tags": [
+          "Organization Management"
+        ],
+        "summary": "List Organizations",
+        "description": "Retrieves a paginated list of organizations belonging to a specific vendor.",
+        "operationId": "getOrganizations",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "name,desc"
+          },
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of organizations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User cannot access this vendor's organizations"
+          },
+          "404": {
+            "description": "Vendor not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Organization Management"
+        ],
+        "summary": "Create Organization",
+        "description": "Creates a new organization under the specified vendor.",
+        "operationId": "createOrganization",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Organization successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission to create organizations for this vendor"
+          },
+          "404": {
+            "description": "Vendor or Plan not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants": {
+      "get": {
+        "tags": [
+          "Assistant Management"
+        ],
+        "summary": "List Assistants",
+        "description": "Retrieves a paginated list of assistants belonging to a specific organization, filtered by user permissions.",
+        "operationId": "getAssistants",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "name,desc"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of assistants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Assistant Management"
+        ],
+        "summary": "Create Assistant",
+        "description": "Creates a new assistant within the specified organization with the given configuration, including extensions and call event hooks.",
+        "operationId": "createAssistant",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "requestBody": {
+          "description": "Assistant creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Assistant successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents": {
+      "get": {
+        "tags": [
+          "Agent Management"
+        ],
+        "summary": "List Agents",
+        "description": "Retrieves a paginated list of agents belonging to a specific organization, filtered by user permissions.",
+        "operationId": "getAgents",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "name,desc"
+          },
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agent Management"
+        ],
+        "summary": "Create Agent",
+        "description": "Creates a new agent within the specified organization with the given configuration, including extensions and call event hooks.",
+        "operationId": "createAgent",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "requestBody": {
+          "description": "Agent creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Agent successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}/tasks": {
+      "get": {
+        "tags": [
+          "Agent Task Management"
+        ],
+        "summary": "List Agent Tasks",
+        "description": "Retrieves a paginated list of tasks assigned to a specific agent.",
+        "operationId": "getTasks",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc' (Note: Default field 'name' might not exist on Task, adjust if needed). Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "createdAt,desc"
+          },
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of agent tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTaskDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User cannot view organization details or agent task descriptions"
+          },
+          "404": {
+            "description": "Vendor, Organization, or Agent not found"
           }
         }
       }
@@ -154,63 +1674,1985 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "VendorUpdate": {
         "type": "object",
+        "description": "Data required to update an existing Vendor.",
         "properties": {
           "name": {
-            "description": "The name of the plant",
-            "type": "string"
-          },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
+            "type": "string",
+            "description": "Updated name for the vendor.",
+            "example": "ACME Corp. International"
           }
-        }
-      },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
-          },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          }
+        },
+        "required": [
+          "name"
         ]
       },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "EmptyResponse": {
         "type": "object",
+        "description": "Standard API response wrapper",
         "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "description": "Payload data object",
+            "example": null
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
           }
-        }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "PlanUpdate": {
+        "type": "object",
+        "description": "Data required to update an existing pricing Plan.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated name of the plan.",
+            "example": "Standard Tier Plus"
+          },
+          "includedInboundSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated number of inbound minutes included.",
+            "example": 1200
+          },
+          "includedOutboundSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated number of outbound minutes included.",
+            "example": 600
+          },
+          "inboundSecondsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated hard limit for inbound minutes.",
+            "example": 6000
+          },
+          "outboundSecondsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated hard limit for outbound minutes.",
+            "example": 2500
+          },
+          "inboundSecondPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated price per inbound minute. In Cents.",
+            "example": 2
+          },
+          "outboundSecondPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated price per outbound minute. In Cents.",
+            "example": 4
+          },
+          "inboundSecondOverusePriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated price per overuse inbound minute. In Cents.",
+            "example": 4
+          },
+          "outboundSecondOverusePriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated price per overuse outbound minute. In Cents.",
+            "example": 6
+          },
+          "enforceInboundSecondsLimit": {
+            "type": "boolean",
+            "description": "Updated setting for enforcing inbound limit.",
+            "example": true
+          },
+          "enforceOutboundSecondsLimit": {
+            "type": "boolean",
+            "description": "Updated setting for enforcing outbound limit.",
+            "example": true
+          },
+          "baseRecurringPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Updated base recurring price. In Cents.",
+            "example": 1200
+          }
+        },
+        "required": [
+          "baseRecurringPriceCent",
+          "enforceInboundSecondsLimit",
+          "enforceOutboundSecondsLimit",
+          "inboundSecondOverusePriceCent",
+          "inboundSecondPriceCent",
+          "inboundSecondsLimit",
+          "includedInboundSeconds",
+          "includedOutboundSeconds",
+          "name",
+          "outboundSecondOverusePriceCent",
+          "outboundSecondPriceCent",
+          "outboundSecondsLimit"
+        ]
+      },
+      "OrganizationUpdate": {
+        "type": "object",
+        "description": "Data required to update an existing Organization.",
+        "properties": {
+          "companyName": {
+            "type": "string",
+            "description": "Updated name of the organization.",
+            "example": "Example Corporation"
+          },
+          "industry": {
+            "type": "string",
+            "description": "Updated industry the organization operates in.",
+            "example": "Software Development"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/OrganizationUpdateContact",
+            "description": "Updated primary contact information for the organization."
+          },
+          "planId": {
+            "type": "string",
+            "description": "Updated ID of the Plan assigned to this organization (UUID).",
+            "example": "d5b0f4a9-b4c3-5e2d-9c8f-6b0e1d2f3a4b"
+          }
+        },
+        "required": [
+          "companyName",
+          "contact",
+          "industry",
+          "planId"
+        ]
+      },
+      "OrganizationUpdateContact": {
+        "type": "object",
+        "description": "Contact person details.",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "Updated first name of the contact.",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Updated last name of the contact.",
+            "example": "Smith"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Updated contact phone number (preferably E.164 format).",
+            "example": "+491719876543"
+          },
+          "country": {
+            "type": "string",
+            "description": "Updated country code of the contact (ISO 3166-1 alpha-2).",
+            "example": "DE"
+          }
+        },
+        "required": [
+          "country",
+          "firstName",
+          "lastName",
+          "phoneNumber"
+        ]
+      },
+      "AssistantUpdate": {
+        "type": "object",
+        "description": "Data required to update an existing Assistant.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated name of the assistant.",
+            "example": "Help Desk Assistant v2"
+          },
+          "systemPrompt": {
+            "type": "string",
+            "description": "Updated main system prompt defining the assistant's role and behavior.",
+            "example": "You are an expert support assistant for ACME Gadgets Pro series. Prioritize Pro customer issues."
+          },
+          "systemPromptGreeting": {
+            "type": "string",
+            "description": "Updated initial greeting message from the assistant.",
+            "example": "Welcome back! How can I assist you today?"
+          },
+          "telephoneNumberId": {
+            "type": "string",
+            "description": "Updated ID of the telephone number assigned to this assistant (UUID).",
+            "example": "22334455-6677-8899-00aa-bbccddeeff11"
+          },
+          "llmAudioContentGenerationStrategyId": {
+            "type": "string",
+            "description": "Updated ID of the LLM Audio Content Generation Strategy used by the assistant (UUID).",
+            "example": "bcdef012-3456-789a-bcde-f0123456789a"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "Updated list of LLM extensions for this assistant. Include existing extension IDs (UUID) to update them, omit ID or provide null to create new ones.",
+            "items": {
+              "$ref": "#/components/schemas/AssistantUpdateLlmExtension"
+            }
+          },
+          "callEventHooks": {
+            "type": "array",
+            "description": "Updated list of Call Event Hooks for this assistant. Include existing hook IDs (UUID) to update them, omit ID or provide null to create new ones.",
+            "items": {
+              "$ref": "#/components/schemas/AssistantUpdateCallEventHook"
+            }
+          }
+        },
+        "required": [
+          "callEventHooks",
+          "extensions",
+          "llmAudioContentGenerationStrategyId",
+          "name",
+          "systemPrompt",
+          "systemPromptGreeting"
+        ]
+      },
+      "AssistantUpdateCallEventHook": {
+        "type": "object",
+        "description": "Configuration for a Call Event Hook during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (UUID) of the call event hook instance to update. If null or missing, a new hook is created.",
+            "example": "b00bface-1337-badd-cafe-d00df00dcafe"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the call event hook. Required for both create and update.",
+            "example": "webhook_transcript_ready_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specific parameters for this hook instance. Required for both create and update.",
+            "example": {
+              "target_url": "https://my.updated.service/transcript",
+              "secret_key": "n3w_s3cr3t"
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AssistantUpdateLlmExtension": {
+        "type": "object",
+        "description": "Configuration for an LLM Extension during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (UUID) of the LLM extension instance to update. If null or missing, a new extension is created.",
+            "example": "deadbeef-cafe-babe-feed-faceabadb001"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the LLM extension. Required for both create and update.",
+            "example": "kb_search_v2"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "Specific parameters for this extension instance. Required for both create and update.",
+            "example": {
+              "kb_url": "https://new-kb.example.com/api",
+              "max_results": 5
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AgentUpdate": {
+        "type": "object",
+        "description": "Data required to update an existing Agent.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated name of the agent.",
+            "example": "Sales Bot Alpha V2"
+          },
+          "userValueTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "STRING",
+                "STRING_REDACTED",
+                "INTEGER",
+                "FLOAT"
+              ]
+            },
+            "description": "Updated map defining user-specific value types the agent can handle.",
+            "example": {
+              "customer_name": "STRING",
+              "product_interest": "STRING",
+              "order_id": "NUMBER",
+              "zip_code": "STRING"
+            }
+          },
+          "systemPromptTemplate": {
+            "type": "string",
+            "description": "Updated template for the system prompt used by the agent's underlying LLM.",
+            "example": "You are an expert sales assistant for ACME Corp focusing on upselling existing customers."
+          },
+          "telephoneNumberId": {
+            "type": "string",
+            "description": "Updated ID of the telephone number assigned to this agent (UUID).",
+            "example": "22334455-6677-8899-00aa-bbccddeeff11"
+          },
+          "llmAudioContentGenerationStrategyId": {
+            "type": "string",
+            "description": "Updated ID of the LLM Audio Content Generation Strategy used by the agent (UUID).",
+            "example": "bcdef012-3456-789a-bcde-f0123456789a"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "Updated list of LLM extensions for this agent. Include existing extension IDs (UUID) to update them, omit ID or provide null to create new ones.",
+            "items": {
+              "$ref": "#/components/schemas/AgentUpdateLlmExtension"
+            }
+          },
+          "callEventHooks": {
+            "type": "array",
+            "description": "Updated list of Call Event Hooks for this agent. Include existing hook IDs (UUID) to update them, omit ID or provide null to create new ones.",
+            "items": {
+              "$ref": "#/components/schemas/AgentUpdateCallEventHook"
+            }
+          }
+        },
+        "required": [
+          "callEventHooks",
+          "extensions",
+          "llmAudioContentGenerationStrategyId",
+          "name",
+          "systemPromptTemplate",
+          "telephoneNumberId",
+          "userValueTypes"
+        ]
+      },
+      "AgentUpdateCallEventHook": {
+        "type": "object",
+        "description": "Configuration for a Call Event Hook during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (UUID) of the call event hook instance to update. If null or missing, a new hook is created.",
+            "example": "b00bface-1337-badd-cafe-d00df00dcafe"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the call event hook. Required for both create and update.",
+            "example": "webhook_call_ended_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specific parameters for this hook instance. Required for both create and update.",
+            "example": {
+              "target_url": "https://my.updated-service.com/call_event",
+              "auth_token": "bearer_xyz987"
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AgentUpdateLlmExtension": {
+        "type": "object",
+        "description": "Configuration for an LLM Extension during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier (UUID) of the LLM extension instance to update. If null or missing, a new extension is created.",
+            "example": "deadbeef-cafe-babe-feed-faceabadb001"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the LLM extension. Required for both create and update.",
+            "example": "crm_lookup_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "Specific parameters for this extension instance. Required for both create and update.",
+            "example": {
+              "crm_system_url": "https://updated-crm.example.com/api",
+              "api_key_secret": "new_secret_crm_key"
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "VendorCreate": {
+        "type": "object",
+        "description": "Data required to create a new Vendor.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the new vendor.",
+            "example": "ACME Corporation"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "PlanCreate": {
+        "type": "object",
+        "description": "Data required to create a new pricing Plan.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the plan.",
+            "example": "Standard Tier"
+          },
+          "includedInboundSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of inbound minutes included in the base price.",
+            "example": 1000
+          },
+          "includedOutboundSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of outbound minutes included in the base price.",
+            "example": 500
+          },
+          "inboundSecondsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Hard limit for inbound minutes (usage stops if exceeded and enforce=true).",
+            "example": 5000
+          },
+          "outboundSecondsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Hard limit for outbound minutes (usage stops if exceeded and enforce=true).",
+            "example": 2000
+          },
+          "inboundSecondPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per inbound minute (within included amount, if applicable, otherwise standard rate). In Cents.",
+            "example": 2
+          },
+          "outboundSecondPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per outbound minute (within included amount, if applicable, otherwise standard rate). In Cents.",
+            "example": 4
+          },
+          "inboundSecondOverusePriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per inbound minute after included amount is used. In Cents.",
+            "example": 3
+          },
+          "outboundSecondOverusePriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per outbound minute after included amount is used. In Cents.",
+            "example": 5
+          },
+          "enforceInboundSecondsLimit": {
+            "type": "boolean",
+            "description": "Whether to enforce the hard limit for inbound minutes.",
+            "example": true
+          },
+          "enforceOutboundSecondsLimit": {
+            "type": "boolean",
+            "description": "Whether to enforce the hard limit for outbound minutes.",
+            "example": false
+          },
+          "baseRecurringPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Base recurring price for the plan (e.g., monthly). In Cents.",
+            "example": 1000
+          }
+        },
+        "required": [
+          "baseRecurringPriceCent",
+          "enforceInboundSecondsLimit",
+          "enforceOutboundSecondsLimit",
+          "inboundSecondOverusePriceCent",
+          "inboundSecondPriceCent",
+          "inboundSecondsLimit",
+          "includedInboundSeconds",
+          "includedOutboundSeconds",
+          "name",
+          "outboundSecondOverusePriceCent",
+          "outboundSecondPriceCent",
+          "outboundSecondsLimit"
+        ]
+      },
+      "OrganizationCreate": {
+        "type": "object",
+        "description": "Data required to create a new Organization.",
+        "properties": {
+          "companyName": {
+            "type": "string",
+            "description": "Name of the organization.",
+            "example": "Example Corp"
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry the organization operates in.",
+            "example": "Technology"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/OrganizationCreateContact",
+            "description": "Primary contact information for the organization."
+          },
+          "planId": {
+            "type": "string",
+            "description": "ID of the Plan assigned to this organization (UUID).",
+            "example": "c4a9e3f8-a3b2-4d1c-8b7e-5a9f0d1e2c3b"
+          }
+        },
+        "required": [
+          "companyName",
+          "contact",
+          "industry",
+          "planId"
+        ]
+      },
+      "OrganizationCreateContact": {
+        "type": "object",
+        "description": "Contact person details.",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "First name of the contact.",
+            "example": "Jane"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name of the contact.",
+            "example": "Doe"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Contact phone number (preferably E.164 format).",
+            "example": "+491701234567"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country code of the contact (ISO 3166-1 alpha-2).",
+            "example": "DE"
+          }
+        },
+        "required": [
+          "country",
+          "firstName",
+          "lastName",
+          "phoneNumber"
+        ]
+      },
+      "AssistantCreate": {
+        "type": "object",
+        "description": "Data required to create a new Assistant",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the assistant.",
+            "example": "Help Desk Assistant"
+          },
+          "systemPromptGreeting": {
+            "type": "string",
+            "description": "Initial greeting message from the assistant.",
+            "example": "Hello! How can I help you with our products today?"
+          },
+          "systemPrompt": {
+            "type": "string",
+            "description": "Main system prompt defining the assistant's role and behavior.",
+            "example": "You are a customer support assistant for ACME Gadgets. Be polite, helpful, and concise. Escalate complex issues to a human agent if necessary."
+          },
+          "telephoneNumberId": {
+            "type": "string",
+            "description": "ID of the telephone number assigned to this assistant (UUID).",
+            "example": "11223344-5566-7788-9900-aabbccddeeff"
+          },
+          "llmAudioContentGenerationStrategyId": {
+            "type": "string",
+            "description": "ID of the LLM Audio Content Generation Strategy used by the assistant (UUID).",
+            "example": "abcdef01-2345-6789-abcd-ef0123456789"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "List of LLM extensions configured for this assistant.",
+            "items": {
+              "$ref": "#/components/schemas/AssistantCreateLlmExtension"
+            }
+          },
+          "callEventHooks": {
+            "type": "array",
+            "description": "List of Call Event Hooks configured for this assistant.",
+            "items": {
+              "$ref": "#/components/schemas/AssistantCreateCallEventHook"
+            }
+          }
+        },
+        "required": [
+          "callEventHooks",
+          "extensions",
+          "llmAudioContentGenerationStrategyId",
+          "name",
+          "systemPrompt",
+          "systemPromptGreeting"
+        ]
+      },
+      "AssistantCreateCallEventHook": {
+        "type": "object",
+        "description": "Configuration for a Call Event Hook (without ID, as it's being created)",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the call event hook.",
+            "example": "webhook_transcript_ready_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specific parameters for this hook instance (structure depends on the hook type).",
+            "example": {
+              "target_url": "https://my.internal.service/transcript",
+              "secret_key": "s3cr3t_tr4nscr1pt"
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AssistantCreateLlmExtension": {
+        "type": "object",
+        "description": "Configuration for an LLM Extension (without ID, as it's being created)",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the LLM extension.",
+            "example": "kb_search_v2"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "Specific parameters for this extension instance (structure depends on the extension type).",
+            "example": {
+              "kb_url": "https://kb.example.com/api",
+              "max_results": 3
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AssistantDetails": {
+        "type": "object",
+        "description": "Detailed view of an Assistant's configuration.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the assistant (UUID).",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the assistant.",
+            "example": "Help Desk Assistant"
+          },
+          "systemPrompt": {
+            "type": "string",
+            "description": "Main system prompt defining the assistant's role and behavior.",
+            "example": "You are a customer support assistant for ACME Gadgets. Be polite, helpful, and concise. Escalate complex issues to a human agent if necessary."
+          },
+          "llmAudioContentGenerationStrategyId": {
+            "type": "string",
+            "description": "ID of the LLM Audio Content Generation Strategy used by the assistant (UUID).",
+            "example": "abcdef01-2345-6789-abcd-ef0123456789"
+          },
+          "telephoneNumberId": {
+            "type": "string",
+            "description": "ID of the telephone number assigned to this assistant (UUID).",
+            "example": "11223344-5566-7788-9900-aabbccddeeff"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "List of LLM extensions configured for this assistant.",
+            "items": {
+              "$ref": "#/components/schemas/AssistantDetailsLlmExtension"
+            }
+          },
+          "callEventHooks": {
+            "type": "array",
+            "description": "List of Call Event Hooks configured for this assistant.",
+            "items": {
+              "$ref": "#/components/schemas/AssistantDetailsCallEventHook"
+            }
+          },
+          "systemPromptGreeting": {
+            "type": "string",
+            "description": "Initial greeting message from the assistant.",
+            "example": "Hello! How can I help you with our products today?"
+          }
+        },
+        "required": [
+          "callEventHooks",
+          "extensions",
+          "id",
+          "llmAudioContentGenerationStrategyId",
+          "name",
+          "systemPrompt",
+          "systemPromptGreeting"
+        ]
+      },
+      "AssistantDetailsCallEventHook": {
+        "type": "object",
+        "description": "Configuration details for an existing Call Event Hook.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the call event hook instance (UUID).",
+            "example": "b00bface-1337-badd-cafe-d00df00dcafe"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the call event hook.",
+            "example": "webhook_transcript_ready_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specific parameters for this hook instance (structure depends on the hook type).",
+            "example": {
+              "target_url": "https://my.internal.service/transcript",
+              "secret_key": "s3cr3t_tr4nscr1pt"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "parameters",
+          "type"
+        ]
+      },
+      "AssistantDetailsLlmExtension": {
+        "type": "object",
+        "description": "Configuration details for an existing LLM Extension.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the LLM extension instance (UUID).",
+            "example": "deadbeef-cafe-babe-feed-faceabadb001"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the LLM extension.",
+            "example": "Knowledge Base Search"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the LLM extension.",
+            "example": "kb_search_v2"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "Specific parameters for this extension instance (structure depends on the extension type). Null values may be present.",
+            "example": {
+              "kb_url": "https://kb.example.com/api",
+              "max_results": 3,
+              "auth_token": null
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "parameters",
+          "type"
+        ]
+      },
+      "AssistantDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssistantDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "AgentCreate": {
+        "type": "object",
+        "description": "Data required to create a new Agent",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the agent.",
+            "example": "Sales Bot Alpha"
+          },
+          "userValueTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "STRING",
+                "STRING_REDACTED",
+                "INTEGER",
+                "FLOAT"
+              ]
+            },
+            "description": "Map defining user-specific value types the agent can handle.",
+            "example": {
+              "customer_name": "STRING",
+              "product_interest": "STRING",
+              "order_id": "NUMBER"
+            }
+          },
+          "systemPromptTemplate": {
+            "type": "string",
+            "description": "Template for the system prompt used by the agent's underlying LLM.",
+            "example": "You are a helpful sales assistant for ACME Corp. Your goal is to qualify leads."
+          },
+          "telephoneNumberId": {
+            "type": "string",
+            "description": "ID of the telephone number assigned to this agent (UUID).",
+            "example": "11223344-5566-7788-9900-aabbccddeeff"
+          },
+          "llmAudioContentGenerationStrategyId": {
+            "type": "string",
+            "description": "ID of the LLM Audio Content Generation Strategy used by the agent (UUID).",
+            "example": "abcdef01-2345-6789-abcd-ef0123456789"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "List of LLM extensions configured for this agent.",
+            "items": {
+              "$ref": "#/components/schemas/AgentCreateLlmExtension"
+            }
+          },
+          "callEventHooks": {
+            "type": "array",
+            "description": "List of Call Event Hooks configured for this agent.",
+            "items": {
+              "$ref": "#/components/schemas/AgentCreateCallEventHook"
+            }
+          }
+        },
+        "required": [
+          "callEventHooks",
+          "extensions",
+          "llmAudioContentGenerationStrategyId",
+          "name",
+          "systemPromptTemplate",
+          "telephoneNumberId",
+          "userValueTypes"
+        ]
+      },
+      "AgentCreateCallEventHook": {
+        "type": "object",
+        "description": "Configuration for a Call Event Hook (without ID, as it's being created)",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the call event hook.",
+            "example": "webhook_call_ended_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specific parameters for this hook instance (structure depends on the hook type).",
+            "example": {
+              "target_url": "https://my.service.com/call_event",
+              "auth_token": "bearer_abc123"
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AgentCreateLlmExtension": {
+        "type": "object",
+        "description": "Configuration for an LLM Extension (without ID, as it's being created)",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the LLM extension.",
+            "example": "crm_lookup_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "Specific parameters for this extension instance (structure depends on the extension type).",
+            "example": {
+              "crm_system_url": "https://mycrm.example.com/api",
+              "api_key_secret": "secret_crm_key"
+            }
+          }
+        },
+        "required": [
+          "parameters",
+          "type"
+        ]
+      },
+      "AgentDetails": {
+        "type": "object",
+        "description": "Detailed view of an Agent's configuration.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the agent (UUID).",
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the agent.",
+            "example": "Sales Bot Alpha"
+          },
+          "systemPromptTemplate": {
+            "type": "string",
+            "description": "Template for the system prompt used by the agent's underlying LLM.",
+            "example": "You are a helpful sales assistant for ACME Corp. Your goal is to qualify leads."
+          },
+          "userValueTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "STRING",
+                "STRING_REDACTED",
+                "INTEGER",
+                "FLOAT"
+              ]
+            },
+            "description": "Map defining user-specific value types the agent can handle.",
+            "example": {
+              "customer_name": "STRING",
+              "product_interest": "STRING",
+              "order_id": "NUMBER"
+            }
+          },
+          "llmAudioContentGenerationStrategyId": {
+            "type": "string",
+            "description": "ID of the LLM Audio Content Generation Strategy used by the agent (UUID).",
+            "example": "abcdef01-2345-6789-abcd-ef0123456789"
+          },
+          "telephoneNumberId": {
+            "type": "string",
+            "description": "ID of the telephone number assigned to this agent (UUID).",
+            "example": "11223344-5566-7788-9900-aabbccddeeff"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "List of LLM extensions configured for this agent.",
+            "items": {
+              "$ref": "#/components/schemas/AgentDetailsLlmExtension"
+            }
+          },
+          "callEventHooks": {
+            "type": "array",
+            "description": "List of Call Event Hooks configured for this agent.",
+            "items": {
+              "$ref": "#/components/schemas/AgentDetailsCallEventHook"
+            }
+          }
+        },
+        "required": [
+          "callEventHooks",
+          "extensions",
+          "id",
+          "llmAudioContentGenerationStrategyId",
+          "name",
+          "systemPromptTemplate",
+          "telephoneNumberId",
+          "userValueTypes"
+        ]
+      },
+      "AgentDetailsCallEventHook": {
+        "type": "object",
+        "description": "Configuration details for an existing Call Event Hook.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the call event hook instance (UUID).",
+            "example": "b00bface-1337-badd-cafe-d00df00dcafe"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the call event hook.",
+            "example": "webhook_call_ended_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specific parameters for this hook instance (structure depends on the hook type).",
+            "example": {
+              "target_url": "https://my.service.com/call_event",
+              "auth_token": "bearer_abc123"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "parameters",
+          "type"
+        ]
+      },
+      "AgentDetailsLlmExtension": {
+        "type": "object",
+        "description": "Configuration details for an existing LLM Extension.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the LLM extension instance (UUID).",
+            "example": "deadbeef-cafe-babe-feed-faceabadb001"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the LLM extension.",
+            "example": "CRM Lookup"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier for the LLM extension.",
+            "example": "crm_lookup_v1"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "Specific parameters for this extension instance (structure depends on the extension type).",
+            "example": {
+              "crm_system_url": "https://mycrm.example.com/api",
+              "api_key_secret": "secret_crm_key"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "parameters",
+          "type"
+        ]
+      },
+      "AgentDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "VendorDescription": {
+        "type": "object",
+        "description": "Basic identifying information for a Vendor, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the vendor (UUID).",
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the vendor.",
+            "example": "ACME Corporation"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "VendorDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/VendorDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "OrganizationDescription": {
+        "type": "object",
+        "description": "Basic identifying information for an Organization, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the organization (UUID).",
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Name of the organization.",
+            "example": "Example Corp"
+          }
+        },
+        "required": [
+          "companyName",
+          "id"
+        ]
+      },
+      "VendorDetails": {
+        "type": "object",
+        "description": "Detailed view of a Vendor's configuration, including associated organizations.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the vendor (UUID).",
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the vendor.",
+            "example": "ACME Corporation"
+          },
+          "organizations": {
+            "type": "array",
+            "description": "List of organizations associated with this vendor (basic description).",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationDescription"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "organizations"
+        ]
+      },
+      "VendorDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VendorDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "PlanDescription": {
+        "type": "object",
+        "description": "Basic identifying information for a Plan, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the plan (UUID).",
+            "example": "c4a9e3f8-a3b2-4d1c-8b7e-5a9f0d1e2c3b"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the plan.",
+            "example": "Standard Tier"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PlanDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/PlanDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "PlanDetails": {
+        "type": "object",
+        "description": "Detailed view of a pricing Plan's configuration.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the plan (UUID).",
+            "example": "c4a9e3f8-a3b2-4d1c-8b7e-5a9f0d1e2c3b"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the plan.",
+            "example": "Standard Tier"
+          },
+          "includedInboundSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of inbound minutes included in the base price.",
+            "example": 1000
+          },
+          "includedOutboundSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of outbound minutes included in the base price.",
+            "example": 500
+          },
+          "inboundSecondsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Hard limit for inbound minutes (usage stops if exceeded and enforce=true).",
+            "example": 5000
+          },
+          "outboundSecondsLimit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Hard limit for outbound minutes (usage stops if exceeded and enforce=true).",
+            "example": 2000
+          },
+          "inboundSecondPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per inbound minute (within included amount, if applicable, otherwise standard rate). In Cents.",
+            "example": 2
+          },
+          "outboundSecondPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per outbound minute (within included amount, if applicable, otherwise standard rate). In Cents.",
+            "example": 4
+          },
+          "inboundSecondOverusePriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per inbound minute after included amount is used. In Cents.",
+            "example": 3
+          },
+          "outboundSecondOverusePriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Price per outbound minute after included amount is used. In Cents.",
+            "example": 5
+          },
+          "enforceInboundSecondsLimit": {
+            "type": "boolean",
+            "description": "Whether to enforce the hard limit for inbound minutes.",
+            "example": true
+          },
+          "enforceOutboundSecondsLimit": {
+            "type": "boolean",
+            "description": "Whether to enforce the hard limit for outbound minutes.",
+            "example": false
+          },
+          "baseRecurringPriceCent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Base recurring price for the plan (e.g., monthly). In Cents.",
+            "example": 1000
+          }
+        },
+        "required": [
+          "baseRecurringPriceCent",
+          "enforceInboundSecondsLimit",
+          "enforceOutboundSecondsLimit",
+          "id",
+          "inboundSecondOverusePriceCent",
+          "inboundSecondPriceCent",
+          "inboundSecondsLimit",
+          "includedInboundSeconds",
+          "includedOutboundSeconds",
+          "name",
+          "outboundSecondOverusePriceCent",
+          "outboundSecondPriceCent",
+          "outboundSecondsLimit"
+        ]
+      },
+      "PlanDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PlanDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "OrganizationDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "OrganizationDetails": {
+        "type": "object",
+        "description": "Detailed view of an Organization's configuration.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the organization (UUID).",
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Name of the organization.",
+            "example": "Example Corp"
+          },
+          "industry": {
+            "type": "string",
+            "description": "Industry the organization operates in.",
+            "example": "Technology"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/OrganizationDetailsContact",
+            "description": "Primary contact information for the organization."
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanDescription",
+            "description": "Plan assigned to this organization (basic description)."
+          }
+        },
+        "required": [
+          "companyName",
+          "contact",
+          "id",
+          "industry",
+          "plan"
+        ]
+      },
+      "OrganizationDetailsContact": {
+        "type": "object",
+        "description": "Contact person details.",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "First name of the contact.",
+            "example": "Jane"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Last name of the contact.",
+            "example": "Doe"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Contact phone number (preferably E.164 format).",
+            "example": "+491701234567"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country code of the contact (ISO 3166-1 alpha-2).",
+            "example": "DE"
+          }
+        },
+        "required": [
+          "country",
+          "firstName",
+          "lastName",
+          "phoneNumber"
+        ]
+      },
+      "OrganizationDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrganizationDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "AssistantDescription": {
+        "type": "object",
+        "description": "Basic identifying information for an Assistant, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the assistant (UUID).",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the assistant.",
+            "example": "Support Assistant"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AssistantDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/AssistantDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "AgentDescription": {
+        "type": "object",
+        "description": "Basic identifying information for an Agent, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the agent (UUID).",
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the agent.",
+            "example": "Support Bot Beta"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AgentDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/AgentDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "AgentTaskDescription": {
+        "type": "object",
+        "description": "Basic description of an Agent Task, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the agent task (UUID).",
+            "example": "77aaddcc-88bb-11ee-aacc-112233445566"
+          },
+          "userValues": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key-value pairs representing user-specific data relevant to the task.",
+            "example": {
+              "customer_name": "Alice Wonderland",
+              "product_interest": "Teapot",
+              "callback_reason": "Price query"
+            }
+          },
+          "targetNumber": {
+            "type": "string",
+            "description": "Target phone number for the task (e.g., customer callback number, preferably E.164 format).",
+            "example": "+491721234567"
+          }
+        },
+        "required": [
+          "id",
+          "targetNumber",
+          "userValues"
+        ]
+      },
+      "AgentTaskDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/AgentTaskDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
       }
     }
   }
