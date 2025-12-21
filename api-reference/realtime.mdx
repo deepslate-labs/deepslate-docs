@@ -64,24 +64,68 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     ```
   </Accordion>
 
-  <Accordion title="UserInput" icon="microphone">
-    Audio data from the user's microphone.
+  <Accordion title="ReconfigureSessionRequest" icon="gear">
+    Reconfigure an ongoing session. Useful for changing audio input settings on the fly.
+
+    <Warning>
+    Reconfiguration may not be seamless. There may be glitches or dropped audio during the transition.
+    </Warning>
 
     | Field | Type | Description |
     |-------|------|-------------|
-    | `packet_id` | uint64 | Client-defined packet identifier for tracking |
-    | `audio_data` | AudioData | Raw PCM audio bytes |
+    | `input_audio_line` | AudioLineConfiguration | Updated input audio format configuration |
 
     ```json
     {
-      "userInput": {
-        "packetId": 1,
-        "audioData": {
-          "data": "<base64-encoded-pcm>"
+      "reconfigureSessionRequest": {
+        "inputAudioLine": {
+          "sampleRate": 48000,
+          "channelCount": 1,
+          "sampleFormat": "SIGNED_16_BIT"
         }
       }
     }
     ```
+  </Accordion>
+
+  <Accordion title="UserInput" icon="microphone">
+    User input data (audio or text).
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `packet_id` | uint64 | Client-defined packet identifier for tracking |
+    | `mode` | InferenceTriggerMode | How to trigger inference for this input |
+    | `audio_data` | AudioData | Raw PCM audio bytes (one of audio_data or text_data) |
+    | `text_data` | TextData | Text input (one of audio_data or text_data) |
+
+    <Tabs>
+      <Tab title="Audio Input">
+        ```json
+        {
+          "userInput": {
+            "packetId": 1,
+            "mode": "IMMEDIATE",
+            "audioData": {
+              "data": "<binary-pcm-data>"
+            }
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="Text Input">
+        ```json
+        {
+          "userInput": {
+            "packetId": 1,
+            "mode": "IMMEDIATE",
+            "textData": {
+              "data": "What's the weather like today?"
+            }
+          }
+        }
+        ```
+      </Tab>
+    </Tabs>
   </Accordion>
 
   <Accordion title="UpdateToolDefinitionsRequest" icon="wrench">
@@ -140,6 +184,26 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     }
     ```
   </Accordion>
+
+  <Accordion title="TriggerInference" icon="bolt">
+    Manually trigger inference processing immediately, instead of waiting for natural pauses or end-of-input signals.
+
+    <Note>
+    Primary use case is generating an initial greeting. Model behavior may be unpredictable if used directly after a model response.
+    </Note>
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `extra_instructions` | string | Optional extra instructions to guide the inference |
+
+    ```json
+    {
+      "triggerInference": {
+        "extraInstructions": "Greet the user warmly and ask how you can help."
+      }
+    }
+    ```
+  </Accordion>
 </AccordionGroup>
 
 ---
@@ -177,7 +241,7 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     {
       "modelAudioChunk": {
         "audio": {
-          "data": "<base64-encoded-pcm>"
+          "data": "<binary-pcm-data>"
         },
         "transcript": "Hello, how can I help you?"
       }
@@ -208,13 +272,33 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
   </Accordion>
 
   <Accordion title="PlaybackClearBuffer" icon="stop">
-    Notification to clear the audio playback buffer. Sent when the user interrupts the model (e.g., starts speaking while audio is still playing).
+    Notification to clear the audio playback buffer. Sent proactively when the user starts speaking, regardless of whether there is ongoing TTS playback.
 
-    When received, immediately discard any buffered audio that hasn't been played yet.
+    When received, immediately discard any buffered audio that hasn't been played yet. This message may be sent multiple times if the user interrupts multiple times.
 
     ```json
     {
       "playbackClearBuffer": {}
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ResponseBegin" icon="play">
+    Notification that the model has begun its response.
+
+    ```json
+    {
+      "responseBegin": {}
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ResponseEnd" icon="circle-check">
+    Notification that the model has finished its response.
+
+    ```json
+    {
+      "responseEnd": {}
     }
     ```
   </Accordion>
@@ -294,3 +378,21 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
 // 1.5 seconds
 { "seconds": 1, "nanos": 500000000 }
 ```
+
+### InferenceTriggerMode
+
+Controls how this input interacts with ongoing inference.
+
+| Value | Description |
+|-------|-------------|
+| `NO_TRIGGER` | Don't trigger inference from this input. Audio is buffered for VAD processing but won't start inference on its own. |
+| `QUEUE` | Queue inference to start after current inference completes (or immediately if idle). |
+| `IMMEDIATE` | Interrupt any ongoing inference and start processing new input immediately. **Recommended for streaming audio.** |
+
+### TextData
+
+Text input wrapper.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | string | Raw text data |

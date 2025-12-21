@@ -106,6 +106,7 @@ function sendAudio(pcmBuffer) {
   const message = ServiceBoundMessage.create({
     userInput: {
       packetId: packetId++,
+      mode: 2,  // IMMEDIATE - interrupt ongoing inference
       audioData: {
         data: pcmBuffer  // Raw PCM bytes matching your config
       }
@@ -129,6 +130,11 @@ The server sends `ClientBoundMessage` with one of several payload types:
 ws.on('message', (data) => {
   const message = ClientBoundMessage.decode(new Uint8Array(data));
 
+  if (message.responseBegin) {
+    // Model has started responding
+    console.log('Response started');
+  }
+
   if (message.modelTextFragment) {
     // Streamed text tokens (when TTS is not configured)
     process.stdout.write(message.modelTextFragment.text);
@@ -143,8 +149,13 @@ ws.on('message', (data) => {
     playAudio(audioData);
   }
 
+  if (message.responseEnd) {
+    // Model has finished responding
+    console.log('Response ended');
+  }
+
   if (message.playbackClearBuffer) {
-    // User interrupted - clear any buffered audio immediately
+    // User started speaking - clear any buffered audio immediately
     clearAudioQueue();
   }
 });
@@ -152,7 +163,7 @@ ws.on('message', (data) => {
 
 ## Handle Interruptions
 
-When the user starts speaking while audio is playing, the server sends `PlaybackClearBuffer`. You should immediately discard any queued audio that hasn't played yet:
+When the user starts speaking, the server sends `PlaybackClearBuffer` proactively to ensure any ongoing playback is stopped. This is sent regardless of whether there is currently TTS playback. You should immediately discard any queued audio that hasn't played yet:
 
 ```javascript
 let audioQueue = [];
@@ -339,6 +350,7 @@ async function main() {
         send({
           userInput: {
             packetId: packetId++,
+            mode: 2,  // IMMEDIATE
             audioData: { data: pcm }
           }
         });
@@ -352,6 +364,10 @@ async function main() {
   ws.on('message', (data) => {
     const msg = ClientBoundMessage.decode(new Uint8Array(data));
 
+    if (msg.responseBegin) {
+      console.log('\n[Response started]');
+    }
+
     if (msg.modelTextFragment) {
       process.stdout.write(msg.modelTextFragment.text);
     }
@@ -361,8 +377,12 @@ async function main() {
       playbackQueue.push(Buffer.from(msg.modelAudioChunk.audio.data));
     }
 
+    if (msg.responseEnd) {
+      console.log('\n[Response ended]');
+    }
+
     if (msg.playbackClearBuffer) {
-      // Clear queued audio
+      // User started speaking - clear queued audio
       playbackQueue = [];
     }
 
@@ -404,5 +424,8 @@ main();
   </Card>
   <Card title="WebRTC" icon="browser" href="/webrtc">
     Browser-based integration for end-user applications
+  </Card>
+  <Card title="LiveKit Plugin" icon="plug" href="https://github.com/rooms-solutions/deepslate-livekit">
+    LiveKit Agents plugin for Deepslate integration
   </Card>
 </CardGroup>

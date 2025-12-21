@@ -198,11 +198,45 @@ message InitializeSessionRequest {
 }
 
 /*
+ * Request to reconfigure an ongoing session.
+ *
+ * This may be useful to change audio input settings on the fly.
+ * Note that corvidae does not guarantee that this happens in a
+ * seamless manner, there may be glitches or dropped audio.
+ */
+message ReconfigureSessionRequest {
+  optional AudioLineConfiguration input_audio_line = 1;
+}
+
+/*
+ * Enumeration for inference trigger modes.
+ */
+enum InferenceTriggerMode {
+  // Don't trigger inference automatically.
+  NO_TRIGGER = 0;
+
+  // Queue inference to happen as soon as current inference is
+  // done (or immediately if no inference is ongoing).
+  QUEUE = 1;
+
+  // Interrupt current inference and start new inference immediately.
+  IMMEDIATE = 2;
+}
+
+/*
  * Audio data wrapper.
  */
 message AudioData {
   // Raw audio data bytes. Must confirm to the AudioLineConfiguration for the respective line.
   bytes data = 1;
+}
+
+/*
+ * Text data wrapper.
+ */
+message TextData {
+  // Raw text data.
+  string data = 1;
 }
 
 message UserInput {
@@ -213,10 +247,38 @@ message UserInput {
   // to choose any numbering scheme, including non-sequential or random values.
   uint64 packet_id = 1;
 
+  // Inference trigger mode for this input.
+  InferenceTriggerMode mode = 2;
+
   oneof input {
     // Audio data input.
-    AudioData audio_data = 2;
+    AudioData audio_data = 3;
+
+    // Text data input.
+    TextData text_data = 4;
   }
+}
+
+/*
+ * Message to trigger inference processing manually and right now.
+ *
+ * This instructs the inference engine to take the current input and
+ * process it immediately, instead of waiting for natural pauses or
+ * end-of-input signals.
+ *
+ * Words of caution: This is useful for generating a greeting or similar
+ * immediate response, but model behavior may be unpredictable if used
+ * directly after a model response. Corvidae will do its best to patch
+ * things together, but there are no guarantees. Use for generating a
+ * greeting is the primary intended use case and fully supported, other
+ * use cases may or may not work as expected.
+ */
+message TriggerInference {
+  // Optional extra instructions to guide the inference.
+  //
+  // This can be used to provide context or specific directives
+  // to the model for this inference trigger.
+  optional string extra_instructions = 1;
 }
 
 /*
@@ -225,9 +287,11 @@ message UserInput {
 message ServiceBoundMessage {
   oneof payload {
     InitializeSessionRequest initialize_session_request = 1;
-    UserInput user_input = 2;
-    UpdateToolDefinitionsRequest update_tool_definitions_request = 3;
-    ToolCallResponse tool_call_response = 4;
+    ReconfigureSessionRequest reconfigure_session_request = 2;
+    UserInput user_input = 3;
+    UpdateToolDefinitionsRequest update_tool_definitions_request = 4;
+    ToolCallResponse tool_call_response = 5;
+    TriggerInference trigger_inference = 6;
   }
 }
 
@@ -253,11 +317,23 @@ message ModelAudioChunk {
 /*
  * Notification to clear the playback buffer.
  *
- * This is sent when the user interrupts the model (e.g., starts speaking
- * while the model is still outputting audio). The client should immediately
- * clear any buffered audio that hasn't been played yet.
+ * This is sent when the user starts speaking, regardless of whether
+ * there is ongoing TTS playback or not. In other words, the event is
+ * sent pro-actively to ensure that any ongoing playback is stopped.
+ *
+ * This might be sent multiple times if the user interrupts multiple times.
  */
 message PlaybackClearBuffer {}
+
+/*
+ * Notification that the model has begun its response.
+ */
+message ResponseBegin {}
+
+/*
+ * Notification that the model has finished its response.
+ */
+message ResponseEnd {}
 
 message ClientBoundMessage {
   oneof payload {
@@ -265,5 +341,7 @@ message ClientBoundMessage {
     ModelTextFragment model_text_fragment = 2;
     ModelAudioChunk model_audio_chunk = 3;
     PlaybackClearBuffer playback_clear_buffer = 4;
+    ResponseBegin response_begin = 5;
+    ResponseEnd response_end = 6;
   }
 }
