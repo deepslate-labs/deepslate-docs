@@ -1,0 +1,189 @@
+---
+title: 'LiveKit Plugin'
+description: 'Integrate Deepslate voice AI with LiveKit Agents for real-time voice applications'
+icon: 'microphone-lines'
+---
+
+The `deepslate-livekit` package provides a `RealtimeModel` implementation for the [LiveKit Agents](https://github.com/livekit/agents) framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
+
+<Note>
+This plugin is in early development. We welcome contributions! See the [GitHub repository](https://github.com/rooms-solutions/deepslate-livekit) to get involved.
+</Note>
+
+## Prerequisites
+
+- A Deepslate account with API credentials
+- Python 3.11+
+- LiveKit server and API credentials
+- (Optional) ElevenLabs API key for server-side TTS
+
+## Installation
+
+```bash
+pip install git+https://github.com/rooms-solutions/deepslate-livekit.git
+```
+
+## Environment Variables
+
+Set up your credentials as environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
+| `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
+| `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
+| `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
+| `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
+
+<Warning>
+Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is for **server-side use** with LiveKit Agents.
+</Warning>
+
+## Quick Start
+
+```python
+from livekit import agents
+from livekit.agents import AgentServer, AgentSession, Agent, room_io
+
+import deepslate.livekit.realtime
+from deepslate.livekit.realtime import ElevenLabsTtsConfig
+
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(instructions="You are a helpful voice AI assistant.")
+
+server = AgentServer()
+
+@server.rtc_session()
+async def my_agent(ctx: agents.JobContext):
+    session = AgentSession(
+        llm=deepslate.livekit.realtime.RealtimeModel(
+            tts_config=ElevenLabsTtsConfig.from_env()
+        ),
+    )
+
+    await session.start(
+        room=ctx.room,
+        agent=Assistant(),
+        room_options=room_io.RoomOptions(),
+    )
+
+    await session.generate_reply(
+        instructions="Greet the user and offer your assistance."
+    )
+
+if __name__ == "__main__":
+    agents.cli.run_app(server)
+```
+
+## Configuration Reference
+
+<AccordionGroup>
+  <Accordion title="RealtimeModel Parameters">
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `vendor_id` | `str` | env: `DEEPSLATE_VENDOR_ID` | Deepslate vendor ID |
+    | `organization_id` | `str` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
+    | `api_key` | `str` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
+    | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for Deepslate API |
+    | `system_prompt` | `str` | `"You are a helpful assistant."` | System prompt for the model |
+    | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for generate_reply (0 = no timeout) |
+    | `tts_config` | `ElevenLabsTtsConfig` | `None` | TTS configuration (enables audio output) |
+  </Accordion>
+
+  <Accordion title="VAD Configuration">
+    Voice Activity Detection settings control how the server detects when the user starts and stops speaking.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0-1.0) |
+    | `vad_min_volume` | `float` | `0.01` | Minimum volume threshold (0.0-1.0) |
+    | `vad_start_duration_ms` | `int` | `200` | Duration of speech to detect start (ms) |
+    | `vad_stop_duration_ms` | `int` | `500` | Duration of silence to detect end (ms) |
+    | `vad_backbuffer_duration_ms` | `int` | `1000` | Audio buffer before speech detection (ms) |
+  </Accordion>
+
+  <Accordion title="ElevenLabsTtsConfig">
+    Configure server-side text-to-speech with ElevenLabs.
+
+    | Parameter | Type | Description |
+    |-----------|------|-------------|
+    | `api_key` | `str` | ElevenLabs API key (env: `ELEVENLABS_API_KEY`) |
+    | `voice_id` | `str` | Voice ID (env: `ELEVENLABS_VOICE_ID`) |
+    | `model_id` | `str \| None` | Model ID, e.g., `eleven_turbo_v2` (env: `ELEVENLABS_MODEL_ID`) |
+
+    Use `ElevenLabsTtsConfig.from_env()` to create a config from environment variables.
+
+    <Tip>
+    When using ElevenLabs TTS, automatic interruption handling (context truncation) is enabled. Without server-side TTS, you can use LiveKit's standard TTS integration, but interruption handling will not work.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Voice Streaming" icon="waveform-lines">
+    Low-latency bidirectional audio streaming for natural conversations
+  </Card>
+  <Card title="Server-side VAD" icon="microphone">
+    Voice activity detection handled server-side for reliable speech detection
+  </Card>
+  <Card title="Function Tools" icon="wrench">
+    Define and use function tools with the `@function_tool()` decorator
+  </Card>
+  <Card title="ElevenLabs TTS" icon="volume-high">
+    Server-side text-to-speech with automatic interruption handling
+  </Card>
+</CardGroup>
+
+## Function Tools
+
+Use the `@function_tool()` decorator to give your agent capabilities:
+
+```python
+from livekit.agents import function_tool
+
+@function_tool()
+def get_weather(location: str) -> str:
+    """Get the current weather for a location.
+
+    Args:
+        location: The city or location to get weather for
+    """
+    # Your implementation here
+    return f"The weather in {location} is sunny and 22°C"
+
+class WeatherAssistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(
+            instructions="You are a helpful weather assistant.",
+            tools=[get_weather]
+        )
+```
+
+## Contributing
+
+This plugin is open source and we welcome contributions. Visit the [GitHub repository](https://github.com/rooms-solutions/deepslate-livekit) to:
+
+- Report issues
+- Submit pull requests
+- Request features
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="WebSocket API" icon="server" href="/websocket">
+    Low-level WebSocket access for custom integrations
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/realtime">
+    Full message schemas and configuration options
+  </Card>
+  <Card title="LiveKit Agents Docs" icon="book" href="https://docs.livekit.io/agents/">
+    LiveKit Agents framework documentation
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/rooms-solutions/deepslate-livekit">
+    Source code, issues, and contributions
+  </Card>
+</CardGroup>

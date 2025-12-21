@@ -29,6 +29,13 @@
               "websocket",
               "webrtc"
             ]
+          },
+          {
+            "group": "SDK/Plugins",
+            "icon": "puzzle-piece",
+            "pages": [
+              "livekit"
+            ]
           }
         ]
       },
