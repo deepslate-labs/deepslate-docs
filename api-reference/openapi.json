@@ -13,20 +13,28 @@
   ],
   "tags": [
     {
+      "name": "SIP Credentials Management",
+      "description": "API endpoints for managing SIP Credentials within an Organization"
+    },
+    {
       "name": "Assistant Management",
       "description": "API endpoints for managing Assistants within an Organization"
+    },
+    {
+      "name": "SIP Numbers Management",
+      "description": "API endpoints for managing SIP Numbers within an Organization"
     },
     {
       "name": "Plan Management",
       "description": "API endpoints for managing pricing Plans within a Vendor"
     },
     {
-      "name": "Organization Management",
-      "description": "API endpoints for managing Organizations within a Vendor"
-    },
-    {
       "name": "Agent Task Management",
       "description": "API endpoints for retrieving Agent Tasks"
+    },
+    {
+      "name": "Organization Management",
+      "description": "API endpoints for managing Organizations within a Vendor"
     },
     {
       "name": "Vendor Management",
@@ -519,6 +527,418 @@
           },
           "409": {
             "description": "Conflict - Organization cannot be deleted (e.g., due to existing agents/assistants)"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/sip/credentials/{sipCredentialsId}": {
+      "get": {
+        "tags": [
+          "SIP Credentials Management"
+        ],
+        "summary": "Get SIP Credentials",
+        "description": "Retrieves detailed information about a specific sip credentials.",
+        "operationId": "getSipCredentials",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved sip credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipCredentialsDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "SIP Credentials, Organization or Vendor not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SIP Credentials Management"
+        ],
+        "summary": "Update SIP Credentials",
+        "description": "Updates an existing SIP credentials record.",
+        "operationId": "updateSipCredentials",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SipCredentialsCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "SIP credentials updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipCredentialsDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "SIP Credentials, Organization or Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SIP Credentials Management"
+        ],
+        "summary": "Delete SIP Credentials",
+        "description": "Deletes a SIP credentials record. Deletion may be blocked if credentials are in use.",
+        "operationId": "deleteSipCredentials",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SIP credentials deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "SIP Credentials, Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/sip/credentials/{sipCredentialsId}/phone-numbers/{phoneNumberId}": {
+      "get": {
+        "tags": [
+          "SIP Numbers Management"
+        ],
+        "summary": "Get SIP Phone Number",
+        "description": "Retrieves details for a single SIP phone number.",
+        "operationId": "read",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          },
+          {
+            "name": "phoneNumberId",
+            "in": "path",
+            "description": "ID of the Phone Number (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved phone number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipTelephoneNumberResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Phone number, SIP Credentials, Organization or Vendor not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "SIP Numbers Management"
+        ],
+        "summary": "Update SIP Phone Number",
+        "description": "Updates an existing SIP phone number.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          },
+          {
+            "name": "phoneNumberId",
+            "in": "path",
+            "description": "ID of the Phone Number (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SipPhoneNumberCreateViewV1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Phone number updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipTelephoneNumberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Phone number, SIP Credentials, Organization or Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SIP Numbers Management"
+        ],
+        "summary": "Delete SIP Phone Number",
+        "description": "Deletes a SIP phone number.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          },
+          {
+            "name": "phoneNumberId",
+            "in": "path",
+            "description": "ID of the Phone Number (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Phone number deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Phone number, SIP Credentials, Organization or Vendor not found"
           }
         }
       }
@@ -1279,6 +1699,388 @@
         }
       }
     },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/sip/credentials": {
+      "get": {
+        "tags": [
+          "SIP Credentials Management"
+        ],
+        "summary": "List SIP Credentials",
+        "description": "Retrieves a paginated list of SIP credentials for the organization.",
+        "operationId": "getAllSipCredentials",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'hostname,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "hostname,asc"
+            },
+            "example": "hostname,desc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved SIP credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipCredentialsDetailsPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor or Organization not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SIP Credentials Management"
+        ],
+        "summary": "Create SIP Credentials",
+        "description": "Creates new SIP credentials for the specified organization.",
+        "operationId": "createSipCredentials",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SipCredentialsCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "SIP credentials created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipCredentialsDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor or Organization not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/sip/credentials/{sipCredentialsId}/phone-numbers": {
+      "get": {
+        "tags": [
+          "SIP Numbers Management"
+        ],
+        "summary": "List SIP Phone Numbers",
+        "description": "Retrieves a paginated list of phone numbers under the specified SIP credentials.",
+        "operationId": "readAll",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'telephoneNumber,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "telephoneNumber,asc"
+            },
+            "example": "telephoneNumber,desc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved phone numbers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipTelephoneNumberPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor, Organization or SIP Credentials not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SIP Numbers Management"
+        ],
+        "summary": "Create SIP Phone Number",
+        "description": "Creates a new SIP phone number for the given credentials.",
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "sipCredentialsId",
+            "in": "path",
+            "description": "ID of the SIP Credentials (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "7866bedc-40a0-46c6-aa77-6b0a25a92f1e"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SipPhoneNumberCreateViewV1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Phone number created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipTelephoneNumberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor, Organization or SIP Credentials not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/sip/credentials/validate": {
+      "post": {
+        "tags": [
+          "SIP Credentials Management"
+        ],
+        "summary": "Validate SIP Credentials",
+        "description": "Attempts to register with the SIP server using the provided credentials to verify connectivity.",
+        "operationId": "validateSipCredentials",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SipCredentialsCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Validation executed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipCredentialsValidationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor or Organization not found"
+          }
+        }
+      }
+    },
     "/api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants": {
       "get": {
         "tags": [
@@ -1334,6 +2136,16 @@
             "in": "path",
             "description": "ID of the Vendor (UUID)",
             "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "phoneNumberId",
+            "in": "query",
+            "description": "ID of the phone number to filter assistants by used phone number (UUID)",
+            "required": false,
             "schema": {
               "type": "string"
             },
@@ -1609,11 +2421,11 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc' (Note: Default field 'name' might not exist on Task, adjust if needed). Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'createdAt,desc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "string",
-              "default": "name,asc"
+              "default": "createdAt,desc"
             },
             "example": "createdAt,desc"
           },
@@ -1667,6 +2479,392 @@
           },
           "404": {
             "description": "Vendor, Organization, or Agent not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agent Task Management"
+        ],
+        "summary": "Create Agent Task",
+        "description": "Creates a new task for a specific agent.",
+        "operationId": "createTask",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          }
+        ],
+        "requestBody": {
+          "description": "Agent task create data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentTaskRestCreateViewV1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Agent task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTaskDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor, Organization, or Agent not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}/tasks/{taskId}/execute": {
+      "post": {
+        "tags": [
+          "Agent Task Management"
+        ],
+        "summary": "Execute Agent Task",
+        "description": "Schedules a task for execution.",
+        "operationId": "executeTask",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "ID of the Task (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "b46ef79c-d4a0-4419-9f12-bf8eefc7110b"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent task scheduled for execution",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor, Organization, Agent, or Task not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/sip/phone-numbers": {
+      "get": {
+        "tags": [
+          "SIP Numbers Management"
+        ],
+        "summary": "Find phone numbers by value",
+        "description": "Searches phone numbers within the organization by phone number string.",
+        "operationId": "findByPhoneNumber",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "phoneNumber",
+            "in": "query",
+            "description": "The phone number to filter for",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "0049123456789"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'telephoneNumber,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "telephoneNumber,asc"
+            },
+            "example": "telephoneNumber,desc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved phone numbers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SipTelephoneNumberPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor or Organization not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}/tasks/{taskId}": {
+      "get": {
+        "tags": [
+          "Agent Task Management"
+        ],
+        "summary": "Get Agent Task Details",
+        "description": "Retrieves detailed information about a specific agent task.",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "ID of the Task (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "b46ef79c-d4a0-4419-9f12-bf8eefc7110b"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved agent task details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentTaskDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor, Organization, Agent, or Task not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Agent Task Management"
+        ],
+        "summary": "Delete Agent Task",
+        "description": "Deletes a specific task for the given agent.",
+        "operationId": "deleteTask",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "description": "ID of the Agent (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "98765432-10fe-dcba-9876-543210fedcba"
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "ID of the Task (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "b46ef79c-d4a0-4419-9f12-bf8eefc7110b"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent task deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Vendor, Organization, Agent, or Task not found"
           }
         }
       }
@@ -1871,6 +3069,202 @@
           "firstName",
           "lastName",
           "phoneNumber"
+        ]
+      },
+      "SipCredentialsCreate": {
+        "type": "object",
+        "description": "Data required to create or update SIP credentials.",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "Hostname or IP address of the SIP server.",
+            "example": "sipconnect.sipgate.de"
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Port of the SIP server.",
+            "example": 5060,
+            "maximum": 65535,
+            "minimum": 1
+          },
+          "username": {
+            "type": "string",
+            "description": "Username for the SIP account.",
+            "example": "agent001"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for the SIP account.",
+            "example": "strong-password",
+            "writeOnly": true
+          },
+          "maxAgentTasks": {
+            "type": "integer",
+            "format": "int32",
+            "default": "10",
+            "description": "Maximum simultaneous agent tasks allowed for these credentials.",
+            "example": 10,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "hostname",
+          "password",
+          "port",
+          "username"
+        ]
+      },
+      "SipCredentialsDetails": {
+        "type": "object",
+        "description": "Detailed SIP credentials view without exposing the password.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the SIP credentials (UUID).",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Hostname or IP address of the SIP server.",
+            "example": "sip.example.com"
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Port of the SIP server.",
+            "example": 5060,
+            "maximum": 65535,
+            "minimum": 1
+          },
+          "username": {
+            "type": "string",
+            "description": "Username for the SIP account.",
+            "example": "agent001"
+          },
+          "maxAgentTasks": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum simultaneous agent tasks allowed for these credentials.",
+            "example": 5,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "hostname",
+          "id",
+          "maxAgentTasks",
+          "port",
+          "username"
+        ]
+      },
+      "SipCredentialsDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SipCredentialsDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "SipPhoneNumberCreateViewV1": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number",
+            "example": "0049123456789"
+          },
+          "fallback": {
+            "type": "boolean",
+            "description": "Flag for fallback phone number",
+            "example": true
+          }
+        },
+        "required": [
+          "phoneNumber"
+        ]
+      },
+      "SipTelephoneNumber": {
+        "type": "object",
+        "description": "Detailed view of a telephone number.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the phone number (UUID).",
+            "example": "a46ccb36-3bd1-49e5-b36e-d1851c3a63ab"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number",
+            "example": "0049123456789"
+          },
+          "fallback": {
+            "type": "boolean",
+            "description": "Flag for fallback phone number",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "phoneNumber"
+        ]
+      },
+      "SipTelephoneNumberResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SipTelephoneNumber",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
         ]
       },
       "AssistantUpdate": {
@@ -2282,6 +3676,53 @@
           "firstName",
           "lastName",
           "phoneNumber"
+        ]
+      },
+      "SipCredentialsValidation": {
+        "type": "object",
+        "description": "Result of testing provided SIP credentials against the SIP server.",
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "description": "Whether the SIP credentials could successfully register.",
+            "example": true
+          }
+        },
+        "required": [
+          "successful"
+        ]
+      },
+      "SipCredentialsValidationResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SipCredentialsValidation",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
         ]
       },
       "AssistantCreate": {
@@ -2847,6 +4288,162 @@
           "timestamp"
         ]
       },
+      "AgentTaskRestCreateViewV1": {
+        "type": "object",
+        "properties": {
+          "userValues": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key-value pairs representing user-specific data relevant to the task.",
+            "example": {
+              "customer_name": "Alice Wonderland",
+              "product_interest": "Teapot",
+              "callback_reason": "Price query"
+            }
+          },
+          "targetNumber": {
+            "type": "string",
+            "description": "Target phone number for the task (e.g., customer callback number, preferably E.164 format).",
+            "example": "+491721234567"
+          },
+          "allowedHoursBegin": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Start hour (0-23) of the allowed execution window in UTC. Null means no restriction.",
+            "example": 9
+          },
+          "allowedHours": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Length of the allowed execution window in hours. Null means no restriction.",
+            "example": 8
+          },
+          "onlyWeekdays": {
+            "type": "boolean",
+            "description": "When true, only schedule calls on weekdays (Mon-Fri).",
+            "example": true
+          },
+          "execute": {
+            "type": "boolean",
+            "description": "When true, schedule the task for execution.",
+            "example": true
+          }
+        },
+        "required": [
+          "targetNumber",
+          "userValues"
+        ]
+      },
+      "AgentTaskDetails": {
+        "type": "object",
+        "description": "Detailed view of an Agent Task.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the agent task (UUID).",
+            "example": "77aaddcc-88bb-11ee-aacc-112233445566"
+          },
+          "userValues": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key-value pairs representing user-specific data relevant to the task.",
+            "example": {
+              "customer_name": "Alice Wonderland",
+              "product_interest": "Teapot",
+              "callback_reason": "Price query"
+            }
+          },
+          "targetNumber": {
+            "type": "string",
+            "description": "Target phone number for the task (e.g., customer callback number, preferably E.164 format).",
+            "example": "+491721234567"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current task status.",
+            "enum": [
+              "IDLE",
+              "SCHEDULED",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED"
+            ],
+            "example": "SCHEDULED"
+          },
+          "allowedHoursBegin": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Start hour (0-23) of the allowed execution window in UTC. Null means no restriction.",
+            "example": 9
+          },
+          "allowedHours": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Length of the allowed execution window in hours. Null means no restriction.",
+            "example": 8
+          },
+          "onlyWeekdays": {
+            "type": "boolean",
+            "description": "When true, calls are only executed on weekdays (Mon-Fri).",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task creation timestamp (UTC, ISO-8601).",
+            "example": "2024-02-01T09:15:30Z"
+          },
+          "conclusionId": {
+            "type": "string",
+            "description": "Conclusion data for a completed task, if available."
+          }
+        },
+        "required": [
+          "createdAt",
+          "id",
+          "onlyWeekdays",
+          "status",
+          "targetNumber",
+          "userValues"
+        ]
+      },
+      "AgentTaskDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AgentTaskDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
       "VendorDescription": {
         "type": "object",
         "description": "Basic identifying information for a Vendor, typically used in lists.",
@@ -3387,6 +4984,134 @@
         "required": [
           "success",
           "timestamp"
+        ]
+      },
+      "SipTelephoneNumberPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/SipTelephoneNumber"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "SipCredentialsDetailsPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/SipCredentialsDetails"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
         ]
       },
       "AssistantDescription": {
