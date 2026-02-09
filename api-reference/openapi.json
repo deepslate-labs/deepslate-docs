@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://app.deepslate.eu:80",
+      "url": "https://app.deepslate.eu",
       "description": "Generated server url"
     }
   ],
