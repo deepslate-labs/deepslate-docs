@@ -109,6 +109,28 @@
               "api-reference/vendors/update",
               "api-reference/vendors/delete"
             ]
+          },
+          {
+            "group": "SIP Credentials",
+            "pages": [
+              "api-reference/sip-credentials/list",
+              "api-reference/sip-credentials/create",
+              "api-reference/sip-credentials/get",
+              "api-reference/sip-credentials/update",
+              "api-reference/sip-credentials/delete",
+              "api-reference/sip-credentials/validate"
+            ]
+          },
+          {
+            "group": "SIP Phone Numbers",
+            "pages": [
+              "api-reference/sip-numbers/list",
+              "api-reference/sip-numbers/create",
+              "api-reference/sip-numbers/get",
+              "api-reference/sip-numbers/update",
+              "api-reference/sip-numbers/delete",
+              "api-reference/sip-numbers/find"
+            ]
           }
         ]
       }
