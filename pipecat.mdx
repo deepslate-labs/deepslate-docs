@@ -1,0 +1,302 @@
+---
+title: 'Pipecat Plugin'
+description: 'Integrate Deepslate voice AI with Pipecat for real-time voice applications'
+icon: 'microphone-lines'
+---
+
+The `deepslate-pipecat` package provides an `LLMService` implementation for the [Pipecat](https://github.com/pipecat-ai/pipecat) framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
+
+<Note>
+This plugin is in early development. We welcome contributions! See the [GitHub repository](https://github.com/deepslate-labs/deepslate-pipecat) to get involved.
+</Note>
+
+## Prerequisites
+
+- A Deepslate account with API credentials
+- Python 3.11+
+- A Pipecat-compatible transport (e.g. Daily.co, Twilio, generic WebSocket)
+- (Optional) ElevenLabs API key for server-side TTS
+
+## Installation
+
+```bash
+pip install git+https://github.com/deepslate-labs/deepslate-pipecat.git
+```
+
+## Environment Variables
+
+Set up your credentials as environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
+| `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
+| `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
+| `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
+| `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
+
+<Warning>
+Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is for **server-side use** only.
+</Warning>
+
+## Quick Start
+
+```python
+import asyncio
+import os
+import sys
+
+import aiohttp
+from dotenv import load_dotenv
+from loguru import logger
+
+from pipecat.pipeline.pipeline import Pipeline
+from pipecat.pipeline.runner import PipelineRunner
+from pipecat.pipeline.task import PipelineParams, PipelineTask
+from pipecat.transports.daily.transport import DailyParams, DailyTransport
+
+from deepslate.pipecat import DeepslateOptions, DeepslateRealtimeLLMService, ElevenLabsTtsConfig
+
+load_dotenv()
+
+async def main():
+    # Fetch a Daily meeting token
+    async with aiohttp.ClientSession() as session:
+        room_name = os.environ["DAILY_ROOM_URL"].split("/")[-1]
+        async with session.post(
+            "https://api.daily.co/v1/meeting-tokens",
+            headers={"Authorization": f"Bearer {os.environ['DAILY_API_KEY']}"},
+            json={"properties": {"room_name": room_name}},
+        ) as r:
+            token = (await r.json())["token"]
+
+    transport = DailyTransport(
+        room_url=os.environ["DAILY_ROOM_URL"],
+        token=token,
+        bot_name="Deepslate Bot",
+        params=DailyParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_enabled=False,  # VAD is handled server-side by Deepslate
+        ),
+    )
+
+    llm = DeepslateRealtimeLLMService(
+        options=DeepslateOptions.from_env(
+            system_prompt="You are a friendly and helpful AI assistant."
+        ),
+        tts_config=ElevenLabsTtsConfig.from_env(),
+    )
+
+    pipeline = Pipeline([transport.input(), llm, transport.output()])
+    task = PipelineTask(pipeline, params=PipelineParams(allow_interruptions=True))
+
+    @transport.event_handler("on_participant_left")
+    async def on_participant_left(transport, participant, reason):
+        await task.cancel()
+
+    await PipelineRunner().run(task)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Configuration Reference
+
+<AccordionGroup>
+  <Accordion title="DeepslateOptions">
+    The main configuration class for connecting to the Deepslate API. Use `DeepslateOptions.from_env()` to load credentials from environment variables, with optional overrides.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `vendor_id` | `str` | env: `DEEPSLATE_VENDOR_ID` | Your Deepslate vendor ID |
+    | `organization_id` | `str` | env: `DEEPSLATE_ORGANIZATION_ID` | Your Deepslate organization ID |
+    | `api_key` | `str` | env: `DEEPSLATE_API_KEY` | Your Deepslate API key |
+    | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
+    | `system_prompt` | `str` | `"You are a helpful assistant."` | System prompt for the model |
+    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL (bypasses standard URL construction, useful for local testing) |
+    | `max_retries` | `int` | `3` | Maximum reconnection attempts before emitting an `ErrorFrame` |
+  </Accordion>
+
+  <Accordion title="VAD Configuration">
+    Pass a `DeepslateVadConfig` to `DeepslateRealtimeLLMService` to tune server-side Voice Activity Detection.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
+    | `min_volume` | `float` | `0.01` | Minimum volume threshold (0.0–1.0) |
+    | `start_duration_ms` | `int` | `200` | Duration of speech required to detect speech start (ms) |
+    | `stop_duration_ms` | `int` | `500` | Duration of silence required to detect speech end (ms) |
+    | `backbuffer_duration_ms` | `int` | `1000` | Audio buffered before speech detection triggers (ms) |
+
+    ```python
+    from deepslate.pipecat import DeepslateVadConfig, DeepslateRealtimeLLMService
+
+    llm = DeepslateRealtimeLLMService(
+        options=opts,
+        vad_config=DeepslateVadConfig(
+            confidence_threshold=0.3,
+            stop_duration_ms=300,
+        ),
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="ElevenLabsTtsConfig">
+    Configure server-side text-to-speech with ElevenLabs via Deepslate.
+
+    | Parameter | Type | Description |
+    |-----------|------|-------------|
+    | `api_key` | `str` | ElevenLabs API key (env: `ELEVENLABS_API_KEY`) |
+    | `voice_id` | `str` | Voice ID (env: `ELEVENLABS_VOICE_ID`) |
+    | `model_id` | `str \| None` | Model ID, e.g., `eleven_turbo_v2` (env: `ELEVENLABS_MODEL_ID`) |
+
+    Use `ElevenLabsTtsConfig.from_env()` to create a config from environment variables.
+
+    <Tip>
+    Server-side TTS enables automatic interruption handling — when the user interrupts, Deepslate truncates the response context so the model knows what was actually spoken. Without server-side TTS, the service emits `TTSTextFrame` for a downstream Pipecat TTS service, but interruption context truncation will not work.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Voice Streaming" icon="waveform-lines">
+    Low-latency bidirectional PCM audio streaming over WebSockets for natural conversations
+  </Card>
+  <Card title="Server-side VAD" icon="microphone">
+    Voice activity detection handled server-side for reliable, configurable speech detection
+  </Card>
+  <Card title="Function Calling" icon="wrench">
+    Full tool/function calling support using OpenAI JSON schema format with async handlers
+  </Card>
+  <Card title="ElevenLabs TTS" icon="volume-high">
+    Server-side text-to-speech with automatic interruption handling
+  </Card>
+  <Card title="Automatic Reconnection" icon="rotate">
+    Exponential-backoff reconnection with a configurable retry limit
+  </Card>
+  <Card title="Transport Agnostic" icon="plug">
+    Works with any Pipecat transport: Daily.co, Twilio, generic WebSocket, and more
+  </Card>
+</CardGroup>
+
+## Function Calling
+
+Define tools in OpenAI JSON schema format, register async handlers on the service, and push the definitions into the pipeline before it starts:
+
+```python
+import random
+from pipecat.frames.frames import LLMSetToolsFrame
+from pipecat.services.llm_service import FunctionCallParams
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "lookup_weather",
+            "description": "Get the current weather for a given location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string", "description": "The city to look up."}
+                },
+                "required": ["location"],
+            },
+        },
+    },
+]
+
+async def lookup_weather(params: FunctionCallParams):
+    result = {
+        "location": params.arguments.get("location", "unknown"),
+        "temperature_celsius": random.randint(10, 35),
+    }
+    await params.result_callback(result)
+
+# Register the handler on the service
+llm.register_function("lookup_weather", lookup_weather)
+
+# Queue tool definitions — synced to Deepslate after the pipeline starts
+await task.queue_frame(LLMSetToolsFrame(tools=TOOLS))
+```
+
+## Transport Examples
+
+The Deepslate service is transport-agnostic. Swap the transport to suit your deployment.
+
+<AccordionGroup>
+  <Accordion title="Daily.co (WebRTC)">
+    ```python
+    from pipecat.transports.daily.transport import DailyTransport, DailyParams
+
+    transport = DailyTransport(
+        room_url=daily_room_url,
+        token=token,
+        bot_name="My Voice Bot",
+        params=DailyParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_enabled=False,  # Deepslate handles VAD
+        ),
+    )
+
+    pipeline = Pipeline([transport.input(), llm, transport.output()])
+    ```
+  </Accordion>
+
+  <Accordion title="Twilio">
+    ```python
+    from pipecat.transports.services.twilio import TwilioTransport
+
+    transport = TwilioTransport(
+        account_sid=twilio_account_sid,
+        auth_token=twilio_auth_token,
+        from_number=twilio_from_number,
+    )
+
+    pipeline = Pipeline([transport.input(), llm, transport.output()])
+    ```
+  </Accordion>
+
+  <Accordion title="Generic WebSocket">
+    ```python
+    from pipecat.transports.network.websocket import WebsocketTransport, WebsocketParams
+
+    transport = WebsocketTransport(
+        host="0.0.0.0",
+        port=8765,
+        params=WebsocketParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+        ),
+    )
+
+    pipeline = Pipeline([transport.input(), llm, transport.output()])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Contributing
+
+This plugin is open source and we welcome contributions. Visit the [GitHub repository](https://github.com/deepslate-labs/deepslate-pipecat) to:
+
+- Report issues
+- Submit pull requests
+- Request features
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api-reference/realtime">
+    Full message schemas and configuration options
+  </Card>
+  <Card title="Pipecat Docs" icon="book" href="https://docs.pipecat.ai/">
+    Pipecat framework documentation
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-pipecat">
+    Source code, issues, and contributions
+  </Card>
+</CardGroup>

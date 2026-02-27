@@ -34,7 +34,8 @@
             "group": "SDK/Plugins",
             "icon": "puzzle-piece",
             "pages": [
-              "livekit"
+              "livekit",
+              "pipecat"
             ]
           }
         ]
