@@ -1,0 +1,455 @@
+---
+title: 'Call Event Hooks'
+description: 'Receive webhook notifications when calls start and end'
+---
+
+Call Event Hooks are outbound HTTP webhooks that fire at specific points in a call's lifecycle. When a call starts or ends, the platform sends a `POST` request with a JSON payload to every URL registered on that Assistant or Agent. Use them to trigger workflows, sync conversation data, send transcripts to your CRM, or any other external integration.
+
+## Hook types
+
+| Type | Fires when |
+|------|-----------|
+| `call_started` | The call is connected and audio has begun |
+| `call_concluded` | The call has ended — includes the full conversation transcript, summaries, and call recording |
+
+## Delivery
+
+### Request format
+
+Webhooks are delivered as `HTTP POST` requests with `Content-Type: application/json`. Fields whose value is `null` are omitted from the payload.
+
+### Retry behaviour
+
+The platform guarantees at-least-once delivery. If your endpoint returns an HTTP error status or does not respond within **30 seconds**, the delivery is retried automatically.
+
+| Attempt | Backoff before next retry |
+|---------|--------------------------|
+| 1 | 1 minute |
+| 2 | 2 minutes |
+| 3 | 4 minutes |
+| 4 | 8 minutes |
+| 5 | 16 minutes |
+| … | Doubles each time, capped at 24 hours |
+| 20 | Final attempt — permanently marked `FAILED` |
+
+After 20 failed attempts no further retries occur.
+
+### Delivery states
+
+| Status | Meaning |
+|--------|---------|
+| `PENDING` | Awaiting delivery or scheduled for a retry |
+| `SUCCEEDED` | Delivered successfully (2xx response received) |
+| `FAILED` | All 20 attempts exhausted without success |
+
+### Idempotency
+
+<Note>
+Because deliveries are retried, your endpoint may receive the same event more than once. Use the `callId` field as an idempotency key on your side.
+</Note>
+
+## Payload reference
+
+### Shared fields
+
+Every event payload contains these top-level fields.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | The event type: `call_started` or `call_concluded` |
+| `callId` | `string` | UUID that uniquely identifies this call |
+| `transport` | `object \| null` | Information about how the call was connected |
+
+### Transport object
+
+| Field | Type | Present when |
+|-------|------|-------------|
+| `type` | `string` | Always — `"sip"` or `"websocket"` |
+| `calledNumber` | `string` | SIP only — the number that was dialled |
+| `callingNumber` | `string` | SIP only — the caller's number |
+
+<AccordionGroup>
+  <Accordion title="SIP transport example">
+    ```json
+    {
+      "type": "sip",
+      "calledNumber": "+4930123456",
+      "callingNumber": "+4917612345678"
+    }
+    ```
+  </Accordion>
+  <Accordion title="WebSocket transport example">
+    ```json
+    {
+      "type": "websocket"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### `call_started`
+
+Fired immediately when the call is connected.
+
+**Fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | `"call_started"` |
+| `callId` | `string` | UUID of the call |
+| `startedAt` | `number \| null` | Call start time — Unix timestamp in **milliseconds** |
+| `transport` | `object \| null` | Transport info |
+
+**Example payload**
+
+```json
+{
+  "type": "call_started",
+  "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "startedAt": 1740571200000,
+  "transport": {
+    "type": "sip",
+    "calledNumber": "+4930123456",
+    "callingNumber": "+4917612345678"
+  }
+}
+```
+
+---
+
+### `call_concluded`
+
+Fired after the call ends. Contains the complete conversation history, LLM-generated summaries, and an optional call recording.
+
+**Fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | `"call_concluded"` |
+| `callId` | `string` | UUID of the call |
+| `startedAt` | `number \| null` | Call start time — Unix timestamp in **milliseconds** |
+| `endedAt` | `number \| null` | Call end time — Unix timestamp in **milliseconds** |
+| `shortSummary` | `string \| null` | Short LLM-generated summary of the call |
+| `summary` | `string \| null` | Full LLM-generated summary of the call |
+| `callRecording` | `string \| null` | Base64-encoded audio recording of the entire call |
+| `transport` | `object \| null` | Transport info |
+| `messages` | `array` | Ordered conversation history |
+
+**Example payload**
+
+```json
+{
+  "type": "call_concluded",
+  "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "startedAt": 1740571200000,
+  "endedAt": 1740571500000,
+  "shortSummary": "Customer enquired about the Pro plan pricing.",
+  "summary": "The customer called to ask about the pricing of the Pro subscription plan. The assistant explained the monthly and annual pricing options and offered to send a follow-up email with a detailed comparison.",
+  "callRecording": "<base64-encoded-audio>",
+  "transport": {
+    "type": "sip",
+    "calledNumber": "+4930123456",
+    "callingNumber": "+4917612345678"
+  },
+  "messages": [
+    {
+      "type": "text",
+      "role": "ASSISTANT",
+      "timestamp": 1740571201000,
+      "text": "Hello! How can I help you today?"
+    },
+    {
+      "type": "text",
+      "role": "USER",
+      "timestamp": 1740571210000,
+      "text": "Hi, I'd like to know about your Pro plan pricing."
+    },
+    {
+      "type": "tool_call",
+      "role": "TOOL_CALL",
+      "timestamp": 1740571215000,
+      "callId": "tool-abc-123",
+      "toolName": "get_pricing",
+      "parameters": {
+        "plan": "pro"
+      }
+    },
+    {
+      "type": "tool_result",
+      "role": "TOOL_CALL_RESULT",
+      "timestamp": 1740571216000,
+      "callId": "tool-abc-123",
+      "toolName": "get_pricing",
+      "text": "{\"monthly\": 49, \"annual\": 39}"
+    },
+    {
+      "type": "text",
+      "role": "ASSISTANT",
+      "timestamp": 1740571220000,
+      "text": "The Pro plan is $49 per month, or $39 per month on an annual subscription."
+    }
+  ]
+}
+```
+
+### Messages
+
+The `messages` array contains every turn of the conversation in chronological order. Each element has a `type` discriminator field.
+
+**Shared message fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | Message type: `text`, `audio`, `tool_call`, or `tool_result` |
+| `role` | `string` | Who produced this message |
+| `timestamp` | `number` | Unix timestamp in **milliseconds** |
+
+**Role values**
+
+| Role | Description |
+|------|-------------|
+| `USER` | Speech input from the human caller |
+| `ASSISTANT` | Response generated by the AI assistant |
+| `SYSTEM` | An internal system-level message |
+| `TOOL_CALL` | A tool invocation initiated by the LLM |
+| `TOOL_CALL_RESULT` | The result returned by a tool |
+| `UNKNOWN` | Role could not be determined |
+
+**Message types**
+
+<AccordionGroup>
+  <Accordion title="text">
+    Represents a spoken utterance transcribed to text — from the caller (`USER`) or the assistant (`ASSISTANT`).
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `type` | `string` | `"text"` |
+    | `role` | `string` | `USER`, `ASSISTANT`, `SYSTEM`, or `UNKNOWN` |
+    | `timestamp` | `number` | Unix timestamp in milliseconds |
+    | `text` | `string` | Transcribed or generated text content |
+
+    ```json
+    {
+      "type": "text",
+      "role": "USER",
+      "timestamp": 1740571210000,
+      "text": "Hi, I'd like to know about your Pro plan pricing."
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="audio">
+    Represents a message that exists only as raw audio with no transcription available.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `type` | `string` | `"audio"` |
+    | `role` | `string` | `USER`, `ASSISTANT`, `SYSTEM`, or `UNKNOWN` |
+    | `timestamp` | `number` | Unix timestamp in milliseconds |
+    | `audio` | `string` | Base64-encoded raw audio data |
+
+    ```json
+    {
+      "type": "audio",
+      "role": "USER",
+      "timestamp": 1740571210000,
+      "audio": "<base64-encoded-audio>"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="tool_call">
+    Recorded when the LLM decides to invoke a tool during the conversation.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `type` | `string` | `"tool_call"` |
+    | `role` | `string` | Always `"TOOL_CALL"` |
+    | `timestamp` | `number` | Unix timestamp in milliseconds |
+    | `callId` | `string` | Correlates this call with its result |
+    | `toolName` | `string` | The name of the tool that was invoked |
+    | `parameters` | `object` | The arguments passed to the tool by the LLM |
+
+    ```json
+    {
+      "type": "tool_call",
+      "role": "TOOL_CALL",
+      "timestamp": 1740571215000,
+      "callId": "tool-abc-123",
+      "toolName": "get_pricing",
+      "parameters": {
+        "plan": "pro"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="tool_result">
+    Recorded when a tool returns its result back to the LLM.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `type` | `string` | `"tool_result"` |
+    | `role` | `string` | Always `"TOOL_CALL_RESULT"` |
+    | `timestamp` | `number` | Unix timestamp in milliseconds |
+    | `callId` | `string` | Matches the `callId` of the originating tool call |
+    | `toolName` | `string` | The name of the tool that produced the result |
+    | `text` | `string` | The tool's return value as a plain string |
+
+    ```json
+    {
+      "type": "tool_result",
+      "role": "TOOL_CALL_RESULT",
+      "timestamp": 1740571216000,
+      "callId": "tool-abc-123",
+      "toolName": "get_pricing",
+      "text": "{\"monthly\": 49, \"annual\": 39}"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Configuration
+
+Call Event Hooks are configured per Assistant or Agent — they are not a standalone resource.
+
+### Dashboard
+
+1. Open the Assistant or Agent you want to configure.
+2. Navigate to the **Event Hooks** section.
+3. Click **Add Hook** (**Hinzufügen**), select the hook type, and enter your target URL.
+4. Save. The hook is now active for all future calls on that Assistant or Agent.
+
+To update a hook, edit the URL in place and save. To remove a hook, delete it from the list and save.
+
+### REST API
+
+Hooks are managed through the Assistant and Agent endpoints. The examples below use the Assistant path — the Agent path follows the exact same structure.
+
+```
+/api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants
+/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents
+```
+
+<AccordionGroup>
+  <Accordion title="Read hooks — GET /{assistantId}">
+    Retrieve the full Assistant configuration including its hooks.
+
+    ```http
+    GET /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants/{assistantId}
+    ```
+
+    The `callEventHooks` array in the response:
+
+    ```json
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Support Assistant",
+      "callEventHooks": [
+        {
+          "id": "b00bface-1337-badd-cafe-d00df00dcafe",
+          "type": "call_started",
+          "parameters": {
+            "url": "https://your-server.com/hooks/call-started"
+          }
+        },
+        {
+          "id": "deadbeef-cafe-babe-feed-faceabadb001",
+          "type": "call_concluded",
+          "parameters": {
+            "url": "https://your-server.com/hooks/call-concluded"
+          }
+        }
+      ]
+    }
+    ```
+
+    Each hook object:
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `id` | `string` | UUID of the hook instance |
+    | `type` | `string` | `"call_started"` or `"call_concluded"` |
+    | `parameters.url` | `string` | The target URL for this hook |
+  </Accordion>
+
+  <Accordion title="Create hooks — POST /assistants">
+    Include `callEventHooks` in the request body when creating an Assistant. Omit the `id` — it is assigned by the platform.
+
+    ```http
+    POST /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants
+    Content-Type: application/json
+    ```
+
+    ```json
+    {
+      "name": "Support Assistant",
+      "callEventHooks": [
+        {
+          "type": "call_started",
+          "parameters": {
+            "url": "https://your-server.com/hooks/call-started"
+          }
+        },
+        {
+          "type": "call_concluded",
+          "parameters": {
+            "url": "https://your-server.com/hooks/call-concluded"
+          }
+        }
+      ]
+    }
+    ```
+
+    Returns the full Assistant object including the assigned hook `id` values.
+  </Accordion>
+
+  <Accordion title="Update hooks — PUT /{assistantId}">
+    The `PUT` endpoint replaces the entire `callEventHooks` array. The behaviour depends on whether `id` is included for each hook:
+
+    | Scenario | What to do |
+    |----------|-----------|
+    | Update an existing hook's URL | Include the hook's `id` with the new `url` |
+    | Add a new hook | Omit the `id` field |
+    | Remove a hook | Leave it out of the array |
+
+    ```http
+    PUT /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants/{assistantId}
+    Content-Type: application/json
+    ```
+
+    ```json
+    {
+      "name": "Support Assistant",
+      "callEventHooks": [
+        {
+          "id": "b00bface-1337-badd-cafe-d00df00dcafe",
+          "type": "call_started",
+          "parameters": {
+            "url": "https://your-updated-server.com/hooks/call-started"
+          }
+        },
+        {
+          "type": "call_concluded",
+          "parameters": {
+            "url": "https://your-server.com/hooks/call-concluded"
+          }
+        }
+      ]
+    }
+    ```
+
+    In this example:
+    - The `call_started` hook with the given `id` is **updated** with the new URL.
+    - The `call_concluded` entry has no `id`, so a **new** hook is created.
+    - Any previously existing hooks not listed are **removed**.
+
+    Returns `200 OK` with an empty success body.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+The same operations apply to Agents at `/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}`. The request and response shapes for `callEventHooks` are identical.
+</Note>
