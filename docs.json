@@ -62,6 +62,12 @@
             ]
           },
           {
+            "group": "Tool Webhooks",
+            "pages": [
+              "api-reference/tool-webhooks"
+            ]
+          },
+          {
             "group": "Assistants",
             "pages": [
               "api-reference/assistants/list",
