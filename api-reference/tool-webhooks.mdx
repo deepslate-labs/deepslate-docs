@@ -148,7 +148,7 @@ Supported parameter types: `string`, `integer`, `number`, `boolean`, `object`, `
 |---------------------|-------------|-------|
 | URL | Yes | Fixed at configuration time |
 | HTTP headers | Yes | Static key/value pairs, fixed at configuration time |
-| Body | No | Always contains `type`, `name`, `callId`, `transport`, and `parameters` |
+| Body | Partially | Structure is fixed (type, name, callId, transport, parameters); the content of parameters is indirectly configurable via the schema |
 
 ## Setting up
 
