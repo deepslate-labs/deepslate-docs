@@ -1,0 +1,302 @@
+---
+title: 'Tool Webhooks'
+description: 'Configure outbound webhooks for real-time data lookups and actions during calls'
+---
+
+Tool Webhooks let your AI assistant call external services in real time during a phone call. When the LLM decides to invoke a tool, the platform sends an HTTP `POST` request to a server URL you configure. Your server performs the action — querying a database, booking an appointment, looking up a record — and returns a result that the LLM uses to continue the conversation.
+
+## Request reference
+
+When the LLM triggers a tool, the platform sends a `POST` request to the configured `serverUrl`.
+
+### Request body fields
+
+Requests are delivered as `HTTP POST` with `Content-Type: application/json`. Any headers you configured are included on every request.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `string` | Always `"tool_webhook"` |
+| `name` | `string` | The name of the tool being called |
+| `callId` | `string` | UUID identifying the current call |
+| `transport` | `object` | Information about how the call was connected |
+| `parameters` | `object` | The arguments the LLM passed to the tool, matching your schema |
+
+### Transport object
+
+| Field | Type | Present when |
+|-------|------|-------------|
+| `type` | `string` | Always — `"sip"` or `"websocket"` |
+| `calledNumber` | `string` | SIP only — the number that was dialled |
+| `callingNumber` | `string` | SIP only — the caller's number, or `"anonymous"` if the caller withheld their number |
+
+<AccordionGroup>
+  <Accordion title="SIP transport example">
+    ```json
+    {
+      "type": "sip",
+      "calledNumber": "+4930123456789",
+      "callingNumber": "+4915112345678"
+    }
+    ```
+  </Accordion>
+  <Accordion title="SIP transport — anonymous caller">
+    ```json
+    {
+      "type": "sip",
+      "calledNumber": "+4930123456789",
+      "callingNumber": "anonymous"
+    }
+    ```
+  </Accordion>
+  <Accordion title="WebSocket transport example">
+    ```json
+    {
+      "type": "websocket"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+`callingNumber` is always present for SIP calls but may be `"anonymous"` when the caller has withheld their number. If your webhook uses `callingNumber` to look up a customer record, handle the `"anonymous"` case explicitly — otherwise your server may return incorrect results or an error to the LLM.
+</Warning>
+
+### Full request example
+
+```http
+POST https://api.example.com/my-webhook
+Content-Type: application/json
+Authorization: Bearer secret-token
+
+{
+  "type": "tool_webhook",
+  "name": "book_appointment",
+  "callId": "call-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "transport": {
+    "type": "sip",
+    "calledNumber": "+4930123456789",
+    "callingNumber": "+4915112345678"
+  },
+  "parameters": {
+    "customer_name": "Max Mustermann",
+    "date": "2026-03-05",
+    "time": "14:30",
+    "service": "Beratungsgespräch"
+  }
+}
+```
+
+## Response
+
+Return the tool result as a plain-text or JSON string in the HTTP response body. The LLM receives this string as the tool result and uses it to continue the conversation.
+
+If your server returns an error status code, the LLM receives a generic error string instead of the response body.
+
+## Configuration
+
+Each tool webhook has the following fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | The tool name the LLM sees |
+| `serverUrl` | Yes | The URL to `POST` to when the tool is called |
+| `schema` | Yes | The tool specification in OpenAI function format |
+| `headers` | No | Static HTTP headers added to every outgoing request |
+
+### Schema format
+
+The `schema` field follows the [OpenAI function specification](https://platform.openai.com/docs/guides/function-calling) format. It defines the tool name, description, and the parameters the LLM can pass.
+
+```json
+{
+  "name": "book_appointment",
+  "description": "Books an appointment for the caller at the requested date and time",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "customer_name": {
+        "type": "string",
+        "description": "Full name of the customer"
+      },
+      "date": {
+        "type": "string",
+        "description": "Appointment date in YYYY-MM-DD format"
+      },
+      "time": {
+        "type": "string",
+        "description": "Appointment time in HH:MM format"
+      },
+      "service": {
+        "type": "string",
+        "description": "Type of service requested"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Additional notes from the caller"
+      }
+    },
+    "required": ["customer_name", "date", "time", "service"]
+  }
+}
+```
+
+Supported parameter types: `string`, `integer`, `number`, `boolean`, `object`, `array`.
+
+### What's configurable
+
+| Part of the request | Configurable | Notes |
+|---------------------|-------------|-------|
+| URL | Yes | Fixed at configuration time |
+| HTTP headers | Yes | Static key/value pairs, fixed at configuration time |
+| Body | Partially | Structure is fixed (type, name, callId, transport, parameters); the content of parameters is indirectly configurable via the schema |
+
+## Setting up
+
+Tool Webhooks are configured per Assistant or Agent as LLM Extensions.
+
+### Dashboard
+
+1. Open the Assistant or Agent you want to configure.
+2. Navigate to the **LLM Extensions** (**LLM Erweiterungen**) section.
+3. Click **Add** (**Hinzufügen**) and select the extension type **tool_webhook**.
+4. Enter the tool name, server URL, schema (OpenAI function format), and any HTTP headers.
+5. Save. The tool webhook is now active for all future calls on that Assistant or Agent.
+
+To update a tool webhook, edit the fields in place and save. To remove one, delete it from the list and save.
+
+### REST API
+
+Tool webhooks are managed through the Assistant and Agent endpoints using the `extensions` array. The examples below use the Assistant path — the Agent path follows the exact same structure.
+
+```
+/api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants
+/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents
+```
+
+<AccordionGroup>
+  <Accordion title="Read extensions — GET /{assistantId}">
+    Retrieve the full Assistant configuration including its extensions.
+
+    ```http
+    GET /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants/{assistantId}
+    ```
+
+    The `extensions` array in the response:
+
+    ```json
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Support Assistant",
+      "extensions": [
+        {
+          "id": "deadbeef-cafe-babe-feed-faceabadb001",
+          "type": "tool_webhook",
+          "parameters": {
+            "name": "book_appointment",
+            "serverUrl": "https://api.example.com/my-webhook",
+            "schema": "{\"name\":\"book_appointment\",\"description\":\"...\",\"parameters\":{...}}",
+            "headers": {
+              "Authorization": "Bearer secret-token"
+            }
+          }
+        }
+      ]
+    }
+    ```
+
+    Each extension object:
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `id` | `string` | UUID of the extension instance |
+    | `type` | `string` | `"tool_webhook"` |
+    | `parameters.name` | `string` | The tool name the LLM sees |
+    | `parameters.serverUrl` | `string` | The target URL for outgoing requests |
+    | `parameters.schema` | `string` | The tool specification as a JSON string |
+    | `parameters.headers` | `object` | Static HTTP headers as key/value pairs |
+  </Accordion>
+
+  <Accordion title="Create with extensions — POST /assistants">
+    Include `extensions` in the request body when creating an Assistant. Omit the `id` — it is assigned by the platform.
+
+    ```http
+    POST /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants
+    Content-Type: application/json
+    ```
+
+    ```json
+    {
+      "name": "Support Assistant",
+      "extensions": [
+        {
+          "type": "tool_webhook",
+          "parameters": {
+            "name": "book_appointment",
+            "serverUrl": "https://api.example.com/my-webhook",
+            "schema": "{\"name\":\"book_appointment\",\"description\":\"...\",\"parameters\":{...}}",
+            "headers": {
+              "Authorization": "Bearer secret-token"
+            }
+          }
+        }
+      ]
+    }
+    ```
+
+    Returns the full Assistant object including the assigned extension `id` values.
+  </Accordion>
+
+  <Accordion title="Update extensions — PUT /{assistantId}">
+    The `PUT` endpoint replaces the entire `extensions` array. The behaviour depends on whether `id` is included for each extension:
+
+    | Scenario | What to do |
+    |----------|-----------|
+    | Update an existing extension's fields | Include the extension's `id` with the updated values |
+    | Add a new extension | Omit the `id` field |
+    | Remove an extension | Leave it out of the array |
+
+    ```http
+    PUT /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants/{assistantId}
+    Content-Type: application/json
+    ```
+
+    ```json
+    {
+      "name": "Support Assistant",
+      "extensions": [
+        {
+          "id": "deadbeef-cafe-babe-feed-faceabadb001",
+          "type": "tool_webhook",
+          "parameters": {
+            "name": "book_appointment",
+            "serverUrl": "https://api.example.com/updated-webhook",
+            "schema": "{\"name\":\"book_appointment\",\"description\":\"...\",\"parameters\":{...}}",
+            "headers": {
+              "Authorization": "Bearer new-secret-token"
+            }
+          }
+        },
+        {
+          "type": "tool_webhook",
+          "parameters": {
+            "name": "check_availability",
+            "serverUrl": "https://api.example.com/availability",
+            "schema": "{\"name\":\"check_availability\",\"description\":\"...\",\"parameters\":{...}}"
+          }
+        }
+      ]
+    }
+    ```
+
+    In this example:
+    - The `book_appointment` webhook with the given `id` is **updated** with the new URL and token.
+    - The `check_availability` entry has no `id`, so a **new** extension is created.
+    - Any previously existing extensions not listed are **removed**.
+
+    Returns `200 OK` with an empty success body.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+The same operations apply to Agents at `/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}`. The request and response shapes for `extensions` are identical.
+</Note>
