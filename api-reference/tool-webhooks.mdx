@@ -27,7 +27,7 @@ Requests are delivered as `HTTP POST` with `Content-Type: application/json`. Any
 |-------|------|-------------|
 | `type` | `string` | Always — `"sip"` or `"websocket"` |
 | `calledNumber` | `string` | SIP only — the number that was dialled |
-| `callingNumber` | `string` | SIP only — the caller's number |
+| `callingNumber` | `string` | SIP only — the caller's number, or `"anonymous"` if the caller withheld their number |
 
 <AccordionGroup>
   <Accordion title="SIP transport example">
@@ -39,6 +39,15 @@ Requests are delivered as `HTTP POST` with `Content-Type: application/json`. Any
     }
     ```
   </Accordion>
+  <Accordion title="SIP transport — anonymous caller">
+    ```json
+    {
+      "type": "sip",
+      "calledNumber": "+4930123456789",
+      "callingNumber": "anonymous"
+    }
+    ```
+  </Accordion>
   <Accordion title="WebSocket transport example">
     ```json
     {
@@ -47,6 +56,10 @@ Requests are delivered as `HTTP POST` with `Content-Type: application/json`. Any
     ```
   </Accordion>
 </AccordionGroup>
+
+<Warning>
+`callingNumber` is always present for SIP calls but may be `"anonymous"` when the caller has withheld their number. If your webhook uses `callingNumber` to look up a customer record, handle the `"anonymous"` case explicitly — otherwise your server may return incorrect results or an error to the LLM.
+</Warning>
 
 ### Full request example
 
