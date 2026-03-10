@@ -148,6 +148,12 @@ message VadConfiguration {
 message InferenceConfiguration {
   // System prompt to guide the model's behavior.
   string system_prompt = 1;
+
+  // Temperature setting for the model.
+  //
+  // This controls the randomness of the model's output. Higher values
+  // produce more random output, while lower values produce more deterministic output.
+  double temperature = 2;
 }
 
 /*
@@ -162,6 +168,70 @@ message ElevenLabsTtsConfiguration {
 
   // Model ID (e.g., "eleven_turbo_v2"). If not set, uses default.
   optional string model_id = 3;
+
+  // Optional voice settings for fine-tuning TTS output.
+  optional ElevenLabsVoiceSettings voice_settings = 4;
+
+  // ElevenLabs service location to use for this session.
+  ElevenLabsLocation location = 5;
+}
+
+/*
+ * Configuration for the ElevenLabs voice.
+ */
+message ElevenLabsVoiceSettings {
+  // Stability for the voice
+  double stability = 1;
+
+  // Similarity boost for the voice
+  double similarity_boost = 2;
+
+  // Style setting for v2 models
+  double style = 3;
+
+  // Whether to apply speaker boost
+  bool use_speaker_boost = 4;
+
+  // Speed setting for the voice
+  double speed = 5;
+}
+
+/*
+ * Enumeration of ElevenLabs TTS service locations.
+ *
+ * See here: https://elevenlabs.io/docs/overview/administration/data-residency
+ */
+enum ElevenLabsLocation {
+  // United States
+  //
+  // This is the default location and the one that is accessed via https://elevenlabs.io/.
+  US = 0;
+
+  // European Union
+  //
+  // Requires enterprise access to ElevenLabs.
+  EU = 1;
+
+  // India
+  //
+  // Requires enterprise access to ElevenLabs.
+  INDIA = 2;
+}
+
+/*
+ * Configuration for hosted TTS provider (voice cloning).
+ *
+ * The model is loaded once globally at server startup and shared across
+ * all sessions. Model path and device are server-level configuration.
+ */
+message HostedVoiceRef {
+  string voice_id = 1;
+}
+
+message HostedTtsConfiguration {
+  oneof voice {
+    HostedVoiceRef voice_ref = 1;
+  }
 }
 
 /*
@@ -172,6 +242,7 @@ message ElevenLabsTtsConfiguration {
 message TtsConfiguration {
   oneof provider {
     ElevenLabsTtsConfiguration eleven_labs = 1;
+    HostedTtsConfiguration hosted = 2;
   }
 }
 
@@ -195,6 +266,13 @@ message InitializeSessionRequest {
 
   // TTS configuration. If not specified, raw text fragments are sent to the client.
   optional TtsConfiguration tts_configuration = 5;
+
+  // Whether the client supports playback position reporting.
+  //
+  // When true, the client will send PlaybackPositionReport messages
+  // with precise playback position data. When false (default), the
+  // server uses elapsed-time estimation for context truncation.
+  bool supports_playback_reporting = 6;
 }
 
 /*
@@ -206,6 +284,8 @@ message InitializeSessionRequest {
  */
 message ReconfigureSessionRequest {
   optional AudioLineConfiguration input_audio_line = 1;
+
+  optional InferenceConfiguration inference_configuration = 2;
 }
 
 /*
@@ -282,6 +362,76 @@ message TriggerInference {
 }
 
 /*
+ * Request to export the chat history
+ */
+message ExportChatHistoryRequest {
+  // When true, wait for all in-flight async operations (e.g. transcriptions)
+  // to complete before responding with the chat history.
+  bool await_pending = 1;
+}
+
+/*
+ * Client-reported playback position.
+ *
+ * Sent by clients that support playback reporting to provide
+ * precise information about how many audio bytes have been played.
+ * This enables accurate context truncation on user interrupt.
+ *
+ * Only sent when the client declares `supports_playback_reporting = true`
+ * in the InitializeSessionRequest.
+ */
+message PlaybackPositionReport {
+  // Number of audio bytes played by the client.
+  uint64 bytes_played = 1;
+}
+
+/*
+ * Direct speech directive.
+ *
+ * Instructs the service to speak the given text directly via TTS,
+ * bypassing the LLM. Behaves like a user interruption: any active
+ * inference is cancelled and buffered audio is cleared before the
+ * new text is spoken.
+ */
+message DirectSpeech {
+  // Text to speak.
+  string text = 1;
+
+  // Whether this spoken text should be included as an assistant message
+  // in the chat history or not. When false, the text is spoken,
+  // but the LLM doesn't know that it was spoken. The message will be marked
+  // as ephemeral in the chat history.
+  bool include_in_history = 2;
+}
+
+/*
+ * Conversation query request.
+ *
+ * Prompts the LLM with the conversation history and a custom instruction,
+ * returning a complete text result. The query runs on a separate inference
+ * context and does not modify the main conversation.
+ *
+ * At least one of prompt or instructions should be provided.
+ */
+message ConversationQuery {
+  // Replaces the system prompt for this one-shot inference call.
+  // If absent, uses the session's current system prompt.
+  optional string prompt = 1;
+
+  // Appended as instructions after the conversation turns.
+  // If absent, no extra instructions are appended.
+  optional string instructions = 2;
+}
+
+/*
+ * Result of a conversation query.
+ */
+message ConversationQueryResult {
+  // The LLM's complete response text.
+  string text = 1;
+}
+
+/*
  * Message sent from the client to the service.
  */
 message ServiceBoundMessage {
@@ -292,6 +442,10 @@ message ServiceBoundMessage {
     UpdateToolDefinitionsRequest update_tool_definitions_request = 4;
     ToolCallResponse tool_call_response = 5;
     TriggerInference trigger_inference = 6;
+    ExportChatHistoryRequest export_chat_history_request = 7;
+    PlaybackPositionReport playback_position_report = 8;
+    DirectSpeech direct_speech = 9;
+    ConversationQuery conversation_query = 10;
   }
 }
 
@@ -315,6 +469,141 @@ message ModelAudioChunk {
 }
 
 /*
+ * Exported chat history.
+ */
+message ChatHistory {
+  repeated ChatMessage messages = 1;
+}
+
+/*
+ * Role of a chat message.
+ */
+enum ChatMessageRole {
+  /*
+   * System message (usually the system prompt).
+   */
+  SYSTEM = 0;
+
+  /*
+   * User message.
+   */
+  USER = 1;
+
+  /*
+   * Assistant message.
+   */
+  ASSISTANT = 2;
+}
+
+/*
+ * Delivery status of a chat message.
+ */
+enum ChatDeliveryStatus {
+  // Turn is still being generated.
+  DELIVERY_IN_PROGRESS = 0;
+
+  // All content was delivered to the client.
+  DELIVERY_COMPLETE = 1;
+
+  // User interrupted. Content reflects what was actually delivered.
+  DELIVERY_INTERRUPTED = 2;
+}
+
+/*
+ * Message in the chat history.
+ */
+message ChatMessage {
+  /*
+   * The role of the entity that this message is attributed to.
+   */
+  ChatMessageRole role = 1;
+
+  /*
+   * Ordered content of this message.
+   *
+   * For assistant messages with TTS, text entries include the synthesized audio.
+   * Content blocks are ordered as produced — tool calls are interleaved with
+   * text at the positions they were emitted by the model.
+   */
+  repeated ChatMessageContent content = 2;
+
+  /*
+   * Delivery status of this message.
+   */
+  ChatDeliveryStatus delivery_status = 3;
+
+  /*
+   * Whether this message is ephemeral.
+   *
+   * Ephemeral messages were spoken to the user but are
+   * not part of the LLM's context.
+   */
+  bool ephemeral = 4;
+}
+
+/*
+ * A single content block within a chat message.
+ */
+message ChatMessageContent {
+  oneof content {
+    // Text content, optionally with TTS-synthesized audio.
+    ChatTextContent text_content = 1;
+
+    // User input or model-output audio (not TTS-synthesized).
+    ChatAudioData input_audio = 2;
+
+    // Internal model reasoning / chain-of-thought.
+    string thoughts = 3;
+
+    // Tool call requested by the model.
+    ToolCallRequest tool_call = 4;
+
+    // Tool execution result.
+    ToolCallResponse tool_result = 5;
+
+    // Model instructions (e.g. directives injected via trigger_inference)
+    string instructions = 6;
+  }
+}
+
+/*
+ * Text content with optional TTS-synthesized audio.
+ *
+ * When TTS is active, each synthesized sentence becomes a ChatTextContent
+ * entry with both text and tts_audio populated. Text without TTS audio
+ * (e.g., when TTS is not configured) has tts_audio absent.
+ */
+message ChatTextContent {
+  // The text content.
+  string text = 1;
+
+  // TTS-synthesized audio for this text, if available.
+  optional ChatAudioData tts_audio = 2;
+}
+
+/*
+ * Self-describing audio data (audio bytes + format metadata).
+ *
+ * Composes existing AudioData and AudioLineConfiguration types so
+ * consumers can decode the audio without out-of-band format knowledge.
+ *
+ * Please be careful when using this data and actually look at the format
+ * if you reconfigure the audio pipeline, as then it is possible for it
+ * to change mid conversation.
+ */
+message ChatAudioData {
+  // Raw audio bytes.
+  AudioData audio = 1;
+
+  // Audio format (sample rate, channels, sample format).
+  AudioLineConfiguration format = 2;
+
+  // Transcription of the audio content (when available).
+  // Populated asynchronously for user audio turns.
+  string transcription = 3;
+}
+
+/*
  * Notification to clear the playback buffer.
  *
  * This is sent when the user starts speaking, regardless of whether
@@ -335,6 +624,73 @@ message ResponseBegin {}
  */
 message ResponseEnd {}
 
+/*
+ * Error category for client-facing error notifications.
+ *
+ * These are broad categories that help clients understand the nature of the error.
+ */
+enum SessionErrorCategory {
+  // Unknown or unclassified error.
+  ERROR_UNKNOWN = 0;
+
+  // Session lifecycle errors (not initialized, already initialized).
+  ERROR_SESSION = 1;
+
+  // Configuration errors (invalid audio format, missing required fields).
+  ERROR_CONFIGURATION = 2;
+
+  // Protocol errors (malformed packets, unexpected message types).
+  ERROR_PROTOCOL = 3;
+
+  // Inference/AI processing errors (model unavailable, processing failed, timeout).
+  ERROR_INFERENCE = 4;
+
+  // Audio pipeline errors (codec failure, VAD errors).
+  ERROR_AUDIO = 5;
+
+  // TTS synthesis errors.
+  ERROR_TTS = 6;
+
+  // Internal service errors (catch-all for server-side issues).
+  ERROR_INTERNAL = 7;
+}
+
+/*
+ * Error notification sent to the client.
+ *
+ * This message is sent before the connection is closed to provide useful
+ * context for debugging without exposing server internals.
+ */
+message SessionErrorNotification {
+  // The error category for programmatic handling.
+  SessionErrorCategory category = 1;
+
+  // Human-readable message suitable for logging or display.
+  string message = 2;
+
+  // Optional trace ID for correlating with server logs.
+  // Clients can provide this when reporting issues for easier debugging.
+  optional string trace_id = 3;
+}
+
+/*
+ * Notification that a user audio turn has been transcribed.
+ *
+ * Sent asynchronously after the transcription worker processes a user
+ * audio turn. The turn_id identifies which conversation turn this
+ * transcription belongs to.
+ */
+message UserTranscriptionResult {
+  // Turn ID this transcription belongs to.
+  uint32 turn_id = 1;
+
+  // Transcribed text.
+  string text = 2;
+
+  // Detected language (ISO 639-1 code, e.g. "en").
+  string language = 3;
+}
+
 message ClientBoundMessage {
   oneof payload {
     ToolCallRequest tool_call_request = 1;
@@ -343,5 +699,9 @@ message ClientBoundMessage {
     PlaybackClearBuffer playback_clear_buffer = 4;
     ResponseBegin response_begin = 5;
     ResponseEnd response_end = 6;
+    ChatHistory chat_history = 7;
+    SessionErrorNotification error = 8;
+    UserTranscriptionResult user_transcription_result = 9;
+    ConversationQueryResult conversation_query_result = 10;
   }
 }
