@@ -81,8 +81,10 @@ const initMessage = ServiceBoundMessage.create({
       backbufferDuration: { seconds: 1, nanos: 0 }      // 1s
     },
     inferenceConfiguration: {
-      systemPrompt: 'You are a helpful assistant.'
-    }
+      systemPrompt: 'You are a helpful assistant.',
+      temperature: 0.7
+    },
+    supportsPlaybackReporting: true  // Enable precise playback position reporting
   }
 });
 
@@ -90,6 +92,8 @@ const initMessage = ServiceBoundMessage.create({
 const buffer = ServiceBoundMessage.encode(initMessage).finish();
 ws.send(buffer);
 ```
+
+Set `supportsPlaybackReporting: true` if your client can report how many audio bytes have been played. This enables accurate context truncation when the user interrupts the model mid-response. See [Playback Position Reporting](#playback-position-reporting).
 
 <Tip>
 See the [API Reference](/api-reference/realtime) for all configuration options including TTS providers and tool definitions.
@@ -117,6 +121,16 @@ function sendAudio(pcmBuffer) {
   ws.send(buffer);
 }
 ```
+
+The `mode` field controls how the input interacts with ongoing inference:
+
+| Value | Name | Behavior |
+|-------|------|----------|
+| `0` | `NO_TRIGGER` | Send audio without triggering inference. |
+| `1` | `QUEUE` | Queue inference to run after any current inference completes, or immediately if idle. |
+| `2` | `IMMEDIATE` | Interrupt any ongoing inference and start a new one immediately. |
+
+You can also send text input instead of audio by using `textData` in place of `audioData`.
 
 <Note>
 Audio format must exactly match your session configuration. For 16-bit signed PCM at 16kHz mono, each sample is 2 bytes, little-endian.
@@ -158,6 +172,18 @@ ws.on('message', (data) => {
     // User started speaking - clear any buffered audio immediately
     clearAudioQueue();
   }
+
+  if (message.userTranscriptionResult) {
+    // Async transcription for a completed user audio turn
+    const { turnId, text, language } = message.userTranscriptionResult;
+    console.log(`Turn ${turnId} transcribed (${language}): ${text}`);
+  }
+
+  if (message.error) {
+    // Structured error notification sent before the server closes the connection
+    const { category, message: msg, traceId } = message.error;
+    console.error(`Session error [${category}]: ${msg}`, traceId ?? '');
+  }
 });
 ```
 
@@ -178,6 +204,143 @@ function clearAudioQueue() {
   // Also stop any currently playing audio
 }
 ```
+
+## Trigger Inference
+
+Use `TriggerInference` to make the model respond immediately without waiting for user speech. The primary use case is generating a greeting when the session opens.
+
+```javascript
+function triggerGreeting() {
+  const message = ServiceBoundMessage.create({
+    triggerInference: {
+      extraInstructions: 'Greet the user warmly and ask how you can help.'
+    }
+  });
+  ws.send(ServiceBoundMessage.encode(message).finish());
+}
+
+ws.on('open', () => {
+  // Initialize session first, then trigger a greeting
+  send({ initializeSessionRequest: { /* ... */ } });
+  triggerGreeting();
+});
+```
+
+<Warning>
+`TriggerInference` is designed for generating a greeting before any user input. Using it directly after a model response may produce unpredictable results.
+</Warning>
+
+## Reconfigure Session
+
+Use `ReconfigureSessionRequest` to update the input audio format or system prompt mid-session without reconnecting. You can update either field or both.
+
+```javascript
+function reconfigure({ inputAudioLine, systemPrompt } = {}) {
+  const message = ServiceBoundMessage.create({
+    reconfigureSessionRequest: {
+      ...(inputAudioLine && { inputAudioLine }),
+      ...(systemPrompt && {
+        inferenceConfiguration: { systemPrompt }
+      })
+    }
+  });
+  ws.send(ServiceBoundMessage.encode(message).finish());
+}
+
+// Example: switch system prompt mid-call
+reconfigure({ systemPrompt: 'You are now a billing specialist.' });
+```
+
+<Note>
+Reconfiguration is not guaranteed to be seamless. There may be brief audio glitches or dropped audio around the transition.
+</Note>
+
+## Direct Speech
+
+Use `DirectSpeech` to speak text via TTS immediately, bypassing the LLM. Any active inference is cancelled and the audio buffer is cleared before the text is spoken.
+
+```javascript
+function speak(text, includeInHistory = true) {
+  const message = ServiceBoundMessage.create({
+    directSpeech: {
+      text,
+      includeInHistory  // false = ephemeral, LLM won't know it was spoken
+    }
+  });
+  ws.send(ServiceBoundMessage.encode(message).finish());
+}
+
+// Speak a notice the LLM shouldn't know about
+speak('Please hold, transferring your call.', false);
+```
+
+When `includeInHistory` is `false`, the message is marked as ephemeral in the chat history — it is audible to the user but invisible to the LLM's context.
+
+## Conversation Query
+
+Use `ConversationQuery` to run a one-shot LLM inference over the current conversation history without modifying it. The result is returned as a `ConversationQueryResult`. This is useful for side tasks like summarization or classification that should not affect the ongoing conversation.
+
+```javascript
+function queryConversation() {
+  const message = ServiceBoundMessage.create({
+    conversationQuery: {
+      prompt: 'You are a sentiment analyzer.',       // Replaces system prompt for this query
+      instructions: 'Rate the user sentiment so far as positive, neutral, or negative. Reply with one word.'
+    }
+  });
+  ws.send(ServiceBoundMessage.encode(message).finish());
+}
+
+// Handle the result in your message handler
+if (message.conversationQueryResult) {
+  console.log('Sentiment:', message.conversationQueryResult.text);
+}
+```
+
+At least one of `prompt` or `instructions` must be provided. If `prompt` is absent, the session's current system prompt is used.
+
+## Playback Position Reporting
+
+If you declared `supportsPlaybackReporting: true` during session initialization, send `PlaybackPositionReport` messages regularly as audio plays. This gives the server accurate data to truncate the LLM context to exactly what the user heard when they interrupt.
+
+```javascript
+let bytesPlayed = 0;
+
+function onAudioBytesPlayed(byteCount) {
+  bytesPlayed += byteCount;
+
+  const message = ServiceBoundMessage.create({
+    playbackPositionReport: {
+      bytesPlayed
+    }
+  });
+  ws.send(ServiceBoundMessage.encode(message).finish());
+}
+```
+
+Without playback reporting, the server falls back to elapsed-time estimation for context truncation, which is less precise.
+
+## Export Chat History
+
+Use `ExportChatHistoryRequest` to retrieve the full conversation history at any point. Set `awaitPending: true` to wait for any in-flight transcriptions to finish before the history is returned.
+
+```javascript
+function exportHistory(awaitPending = false) {
+  const message = ServiceBoundMessage.create({
+    exportChatHistoryRequest: { awaitPending }
+  });
+  ws.send(ServiceBoundMessage.encode(message).finish());
+}
+
+// Handle ChatHistory in your message handler
+if (message.chatHistory) {
+  for (const msg of message.chatHistory.messages) {
+    console.log(msg.role, msg.content, msg.deliveryStatus);
+  }
+}
+```
+
+Each `ChatMessage` includes a `role` (`SYSTEM`, `USER`, or `ASSISTANT`), ordered `content` blocks, a `deliveryStatus` (`DELIVERY_COMPLETE`, `DELIVERY_INTERRUPTED`), and an `ephemeral` flag for messages spoken via `DirectSpeech` with `includeInHistory: false`. Audio content blocks (`input_audio` and `tts_audio`) include a `transcription` string that is populated asynchronously for user audio turns.
 
 ## Tool Calling
 
@@ -323,7 +486,8 @@ async function main() {
         },
         inferenceConfiguration: {
           systemPrompt: 'You are a friendly and helpful assistant.'
-        }
+        },
+        supportsPlaybackReporting: true
       }
     });
 
@@ -392,6 +556,16 @@ async function main() {
       const result = handleTool(name, parameters);
       console.log(`Tool result: ${result}`);
       send({ toolCallResponse: { id, result } });
+    }
+
+    if (msg.userTranscriptionResult) {
+      const { turnId, text, language } = msg.userTranscriptionResult;
+      console.log(`[Transcription turn ${turnId} (${language})]: ${text}`);
+    }
+
+    if (msg.error) {
+      const { category, message: errMsg, traceId } = msg.error;
+      console.error(`Session error [${category}]: ${errMsg}`, traceId ?? '');
     }
   });
 

@@ -35,6 +35,7 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | `vad_configuration` | VadConfiguration | Voice activity detection settings |
     | `inference_configuration` | InferenceConfiguration | System prompt and model behavior |
     | `tts_configuration` | TtsConfiguration | Optional TTS provider config (e.g., ElevenLabs) |
+    | `supports_playback_reporting` | bool | Whether the client will send `PlaybackPositionReport` messages. When `true`, enables accurate context truncation on user interrupt. Defaults to `false`. |
 
     ```json
     {
@@ -57,15 +58,17 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
           "backbufferDuration": { "seconds": 1, "nanos": 0 }
         },
         "inferenceConfiguration": {
-          "systemPrompt": "You are a helpful assistant."
-        }
+          "systemPrompt": "You are a helpful assistant.",
+          "temperature": 0.7
+        },
+        "supportsPlaybackReporting": true
       }
     }
     ```
   </Accordion>
 
   <Accordion title="ReconfigureSessionRequest" icon="gear">
-    Reconfigure an ongoing session. Useful for changing audio input settings on the fly.
+    Reconfigure an ongoing session. Useful for changing audio input settings or the system prompt on the fly. You can update either field or both.
 
     <Warning>
     Reconfiguration may not be seamless. There may be glitches or dropped audio during the transition.
@@ -74,6 +77,7 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `input_audio_line` | AudioLineConfiguration | Updated input audio format configuration |
+    | `inference_configuration` | InferenceConfiguration | Updated system prompt and model behavior |
 
     ```json
     {
@@ -82,6 +86,9 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
           "sampleRate": 48000,
           "channelCount": 1,
           "sampleFormat": "SIGNED_16_BIT"
+        },
+        "inferenceConfiguration": {
+          "systemPrompt": "You are now a billing specialist."
         }
       }
     }
@@ -204,6 +211,78 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     }
     ```
   </Accordion>
+
+  <Accordion title="ExportChatHistoryRequest" icon="clock-rotate-left">
+    Request the full conversation history. The server responds with a `ChatHistory` message.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `await_pending` | bool | When `true`, waits for all in-flight async operations (e.g. transcriptions) to complete before responding |
+
+    ```json
+    {
+      "exportChatHistoryRequest": {
+        "awaitPending": true
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="PlaybackPositionReport" icon="gauge-high">
+    Reports how many audio bytes the client has played. Only sent when the client declares `supports_playback_reporting: true` in `InitializeSessionRequest`.
+
+    The server uses this data to accurately truncate the LLM context to exactly what the user heard when they interrupt. Without this, the server falls back to elapsed-time estimation.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `bytes_played` | uint64 | Cumulative number of audio bytes played by the client |
+
+    ```json
+    {
+      "playbackPositionReport": {
+        "bytesPlayed": 32000
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="DirectSpeech" icon="comment-dots">
+    Instructs the service to speak the given text via TTS immediately, bypassing the LLM. Any active inference is cancelled and the audio buffer is cleared before the text is spoken.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `text` | string | Text to speak |
+    | `include_in_history` | bool | When `false`, the text is spoken but marked as ephemeral — the LLM won't know it was spoken |
+
+    ```json
+    {
+      "directSpeech": {
+        "text": "Please hold, transferring your call.",
+        "includeInHistory": false
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ConversationQuery" icon="magnifying-glass">
+    Runs a one-shot LLM inference over the current conversation history without modifying it. Useful for side tasks like summarization or classification. The server responds with a `ConversationQueryResult`.
+
+    At least one of `prompt` or `instructions` must be provided.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `prompt` | string | Replaces the system prompt for this one-shot call. If absent, uses the session's current system prompt |
+    | `instructions` | string | Appended as instructions after the conversation turns. If absent, no extra instructions are appended |
+
+    ```json
+    {
+      "conversationQuery": {
+        "prompt": "You are a sentiment analyzer.",
+        "instructions": "This is the chat history between an assistant and a customer. Do not reply to the chat in any way; only create a brief summary of the entire chat and describe the key points as briefly as possible. 1-2 sentences without line breaks. Reply directly with the summary, no introductions like: 'Okay, here is a brief summary: ...' Example summary: 'Customer requested a callback; conversation positive.'"
+      }
+    }
+    ```
+  </Accordion>
 </AccordionGroup>
 
 ---
@@ -235,7 +314,7 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `audio` | AudioData | Audio bytes matching output_audio_line config |
-    | `transcript` | string | Optional text that was spoken |
+    | `transcript` | string | Optional text that was spoken (alignment data from TTS provider) |
 
     ```json
     {
@@ -302,6 +381,102 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     }
     ```
   </Accordion>
+
+  <Accordion title="ChatHistory" icon="comments">
+    The full conversation history, returned in response to `ExportChatHistoryRequest`.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `messages` | ChatMessage[] | Ordered list of conversation messages |
+
+    ```json
+    {
+      "chatHistory": {
+        "messages": [
+          {
+            "role": "user",
+            "delivery_status": "DELIVERY_COMPLETE",
+            "ephemeral": false,
+            "content": [
+              {
+                "type": "input_audio",
+                "transcription": "What time is it?"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "delivery_status": "DELIVERY_COMPLETE",
+            "ephemeral": false,
+            "content": [
+              {
+                "type": "text",
+                "text": "It's currently 3:45 PM.",
+                "tts_audio": null
+              }
+            ]
+          }
+        ]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SessionErrorNotification" icon="triangle-exclamation">
+    Structured error notification sent before the server closes the connection.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `category` | SessionErrorCategory | Error category for programmatic handling |
+    | `message` | string | Human-readable message for logging or display |
+    | `trace_id` | string | Optional trace ID for correlating with server logs |
+
+    ```json
+    {
+      "error": {
+        "category": "ERROR_CONFIGURATION",
+        "message": "Invalid sample rate: must be between 8000 and 48000",
+        "traceId": "abc-123-xyz"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="UserTranscriptionResult" icon="closed-captioning">
+    Async transcription result for a completed user audio turn. Sent after the transcription worker finishes processing.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Identifies which conversation turn this transcription belongs to |
+    | `text` | string | Transcribed text |
+    | `language` | string | Detected language (ISO 639-1 code, e.g. `"en"`) |
+
+    ```json
+    {
+      "userTranscriptionResult": {
+        "turnId": 3,
+        "text": "What time is it?",
+        "language": "en"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ConversationQueryResult" icon="comment-check">
+    Result of a `ConversationQuery` request.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `text` | string | The LLM's complete response text |
+
+    ```json
+    {
+      "conversationQueryResult": {
+        "text": "positive"
+      }
+    }
+    ```
+  </Accordion>
 </AccordionGroup>
 
 ---
@@ -338,6 +513,13 @@ Voice Activity Detection settings.
 | `stop_duration` | Duration | Silence duration to trigger end |
 | `backbuffer_duration` | Duration | Audio buffer before speech start (recommended: 1s) |
 
+### InferenceConfiguration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `system_prompt` | string | System prompt to guide model behavior |
+| `temperature` | double | Controls output randomness. Higher values produce more random output, lower values more deterministic output. |
+
 ### TtsConfiguration
 
 Optional text-to-speech configuration. If omitted, raw text fragments are sent.
@@ -349,6 +531,8 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
     | `api_key` | string | Your ElevenLabs API key |
     | `voice_id` | string | Voice ID (e.g., "21m00Tcm4TlvDq8ikWAM") |
     | `model_id` | string | Optional model ID (e.g., "eleven_turbo_v2") |
+    | `voice_settings` | ElevenLabsVoiceSettings | Optional voice fine-tuning settings |
+    | `location` | ElevenLabsLocation | Service location for data residency (default: `US`) |
 
     ```json
     {
@@ -356,13 +540,62 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
         "elevenLabs": {
           "apiKey": "sk-...",
           "voiceId": "21m00Tcm4TlvDq8ikWAM",
-          "modelId": "eleven_turbo_v2"
+          "modelId": "eleven_turbo_v2",
+          "voiceSettings": {
+            "stability": 0.5,
+            "similarityBoost": 0.75,
+            "style": 0.0,
+            "useSpeakerBoost": true,
+            "speed": 1.0
+          },
+          "location": "EU"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Hosted">
+    Uses a voice model hosted on the Deepslate server. The model is loaded globally at startup and shared across all sessions.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `voice_ref` | HostedVoiceRef | Reference to a hosted voice by ID |
+
+    ```json
+    {
+      "ttsConfiguration": {
+        "hosted": {
+          "voiceRef": {
+            "voiceId": "my-custom-voice"
+          }
         }
       }
     }
     ```
   </Tab>
 </Tabs>
+
+### ElevenLabsVoiceSettings
+
+Fine-tuning settings for ElevenLabs voices.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stability` | double | Stability for the voice (0.0-1.0) |
+| `similarity_boost` | double | Similarity boost for the voice (0.0-1.0) |
+| `style` | double | Style setting for v2 models (0.0-1.0) |
+| `use_speaker_boost` | bool | Whether to apply speaker boost |
+| `speed` | double | Speed setting for the voice |
+
+### ElevenLabsLocation
+
+Controls which ElevenLabs regional endpoint is used. See [ElevenLabs data residency docs](https://elevenlabs.io/docs/overview/administration/data-residency) for details.
+
+| Value | Description |
+|-------|-------------|
+| `US` | United States (default) — accessed via https://elevenlabs.io/ |
+| `EU` | European Union — requires ElevenLabs enterprise access |
+| `INDIA` | India — requires ElevenLabs enterprise access |
 
 ### Duration
 
@@ -396,3 +629,81 @@ Text input wrapper.
 | Field | Type | Description |
 |-------|------|-------------|
 | `data` | string | Raw text data |
+
+### ChatMessage
+
+A single message in the conversation history.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `role` | ChatMessageRole | Role of the entity this message is attributed to |
+| `content` | ChatMessageContent[] | Ordered content blocks of this message |
+| `delivery_status` | ChatDeliveryStatus | Delivery status of this message |
+| `ephemeral` | bool | `true` when the message was spoken via `DirectSpeech` with `include_in_history: false` — audible to the user but not in the LLM's context |
+
+### ChatMessageRole
+
+| Value | Description |
+|-------|-------------|
+| `SYSTEM` | System message (usually the system prompt) |
+| `USER` | User message |
+| `ASSISTANT` | Assistant message |
+
+### ChatDeliveryStatus
+
+| Value | Description |
+|-------|-------------|
+| `DELIVERY_IN_PROGRESS` | Turn is still being generated |
+| `DELIVERY_COMPLETE` | All content was delivered to the client |
+| `DELIVERY_INTERRUPTED` | User interrupted — content reflects what was actually delivered |
+
+### ChatMessageContent
+
+A single content block within a chat message. Contains one of:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text_content` | ChatTextContent | Text content, optionally with TTS-synthesized audio |
+| `input_audio` | ChatAudioData | User input or model-output audio (not TTS-synthesized) |
+| `thoughts` | string | Internal model reasoning / chain-of-thought |
+| `tool_call` | ToolCallRequest | Tool call requested by the model |
+| `tool_result` | ToolCallResponse | Tool execution result |
+| `instructions` | string | Model instructions (e.g. directives injected via `TriggerInference`) |
+
+### ChatTextContent
+
+Text content from a conversation turn, with optional TTS audio. When TTS is active, each synthesized sentence becomes a `ChatTextContent` with both fields populated.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | The text content |
+| `tts_audio` | ChatAudioData | TTS-synthesized audio for this text, if available |
+
+### ChatAudioData
+
+Self-describing audio data including format metadata so consumers can decode without out-of-band knowledge.
+
+<Note>
+If you reconfigure the audio pipeline mid-conversation, the format may change. Always inspect the `format` field rather than assuming it matches the initial configuration.
+</Note>
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `audio` | AudioData | Raw audio bytes |
+| `format` | AudioLineConfiguration | Audio format (sample rate, channels, sample format) |
+| `transcription` | string | Transcription of the audio content. Populated asynchronously for user audio turns. |
+
+### SessionErrorCategory
+
+Broad error categories for programmatic handling of `SessionErrorNotification`.
+
+| Value | Description |
+|-------|-------------|
+| `ERROR_UNKNOWN` | Unknown or unclassified error |
+| `ERROR_SESSION` | Session lifecycle errors (not initialized, already initialized) |
+| `ERROR_CONFIGURATION` | Configuration errors (invalid audio format, missing required fields) |
+| `ERROR_PROTOCOL` | Protocol errors (malformed packets, unexpected message types) |
+| `ERROR_INFERENCE` | Inference/AI processing errors (model unavailable, processing failed, timeout) |
+| `ERROR_AUDIO` | Audio pipeline errors (codec failure, VAD errors) |
+| `ERROR_TTS` | TTS synthesis errors |
+| `ERROR_INTERNAL` | Internal service errors (catch-all for server-side issues) |
