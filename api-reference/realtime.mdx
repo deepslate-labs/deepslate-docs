@@ -394,16 +394,27 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
       "chatHistory": {
         "messages": [
           {
-            "role": "SYSTEM",
-            "content": [{ "textContent": { "text": "You are a helpful assistant." } }],
-            "deliveryStatus": "DELIVERY_COMPLETE",
-            "ephemeral": false
+            "role": "user",
+            "delivery_status": "DELIVERY_COMPLETE",
+            "ephemeral": false,
+            "content": [
+              {
+                "type": "input_audio",
+                "transcription": "What time is it?"
+              }
+            ]
           },
           {
-            "role": "USER",
-            "content": [{ "inputAudio": { "audio": { "data": "<binary>" }, "format": { "sampleRate": 16000, "channelCount": 1, "sampleFormat": "SIGNED_16_BIT" }, "transcription": "What time is it?" } }],
-            "deliveryStatus": "DELIVERY_COMPLETE",
-            "ephemeral": false
+            "role": "assistant",
+            "delivery_status": "DELIVERY_COMPLETE",
+            "ephemeral": false,
+            "content": [
+              {
+                "type": "text",
+                "text": "It's currently 3:45 PM.",
+                "tts_audio": null
+              }
+            ]
           }
         ]
       }
