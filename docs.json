@@ -37,6 +37,13 @@
               "livekit",
               "pipecat"
             ]
+          },
+          {
+            "group": "Prompt Engineering",
+            "icon": "wand-magic-sparkles",
+            "pages": [
+              "prompt-engineering/system-prompt"
+            ]
           }
         ]
       },
