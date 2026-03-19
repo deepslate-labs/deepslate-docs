@@ -7,7 +7,7 @@ icon: 'microphone-lines'
 The `deepslate-livekit` package provides a `RealtimeModel` implementation for the [LiveKit Agents](https://github.com/livekit/agents) framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
 
 <Note>
-This plugin is in early development. We welcome contributions! See the [GitHub repository](https://github.com/rooms-solutions/deepslate-livekit) to get involved.
+This plugin lives in the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks). We welcome contributions — feel free to open issues or pull requests there.
 </Note>
 
 ## Prerequisites
@@ -20,7 +20,7 @@ This plugin is in early development. We welcome contributions! See the [GitHub r
 ## Installation
 
 ```bash
-pip install git+https://github.com/rooms-solutions/deepslate-livekit.git
+pip install deepslate-livekit
 ```
 
 ## Environment Variables
@@ -32,7 +32,7 @@ Set up your credentials as environment variables:
 | `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
 | `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
 | `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
-| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
 | `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
 | `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
 
@@ -83,40 +83,77 @@ if __name__ == "__main__":
   <Accordion title="RealtimeModel Parameters">
     | Parameter | Type | Default | Description |
     |-----------|------|---------|-------------|
-    | `vendor_id` | `str` | env: `DEEPSLATE_VENDOR_ID` | Deepslate vendor ID |
-    | `organization_id` | `str` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
-    | `api_key` | `str` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
-    | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for Deepslate API |
-    | `system_prompt` | `str` | `"You are a helpful assistant."` | System prompt for the model |
-    | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for generate_reply (0 = no timeout) |
-    | `tts_config` | `ElevenLabsTtsConfig` | `None` | TTS configuration (enables audio output) |
+    | `vendor_id` | `str \| None` | env: `DEEPSLATE_VENDOR_ID` | Deepslate vendor ID |
+    | `organization_id` | `str \| None` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
+    | `api_key` | `str \| None` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
+    | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
+    | `system_prompt` | `str` | `"You are a helpful assistant."` | Default system prompt |
+    | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
+    | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for `generate_reply` (0 = no timeout) |
+    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
+    | `tts_config` | `ElevenLabsTtsConfig \| None` | `None` | TTS configuration (enables audio output) |
+    | `http_session` | `aiohttp.ClientSession \| None` | `None` | Shared aiohttp session |
+    | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
+    | `vad_min_volume` | `float` | `0.01` | Minimum volume threshold (0.0–1.0) |
+    | `vad_start_duration_ms` | `int` | `200` | Duration of speech to detect start (ms) |
+    | `vad_stop_duration_ms` | `int` | `500` | Duration of silence to detect speech end (ms) |
+    | `vad_backbuffer_duration_ms` | `int` | `1000` | Audio buffered before speech detection (ms) |
   </Accordion>
 
   <Accordion title="VAD Configuration">
-    Voice Activity Detection settings control how the server detects when the user starts and stops speaking.
+    Voice Activity Detection is handled **server-side** by Deepslate. You tune it via the `vad_*` parameters on `RealtimeModel` — no client-side VAD pipeline is needed.
 
-    | Parameter | Type | Default | Description |
-    |-----------|------|---------|-------------|
-    | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0-1.0) |
-    | `vad_min_volume` | `float` | `0.01` | Minimum volume threshold (0.0-1.0) |
-    | `vad_start_duration_ms` | `int` | `200` | Duration of speech to detect start (ms) |
-    | `vad_stop_duration_ms` | `int` | `500` | Duration of silence to detect end (ms) |
-    | `vad_backbuffer_duration_ms` | `int` | `1000` | Audio buffer before speech detection (ms) |
+    | Parameter | Default | Description |
+    |-----------|---------|-------------|
+    | `vad_confidence_threshold` | `0.5` | Minimum confidence score to classify audio as speech (0.0–1.0) |
+    | `vad_min_volume` | `0.01` | Minimum audio volume to consider (0.0–1.0) |
+    | `vad_start_duration_ms` | `200` | Consecutive speech duration required to start a turn (ms) |
+    | `vad_stop_duration_ms` | `500` | Silence duration required to end a turn (ms) |
+    | `vad_backbuffer_duration_ms` | `1000` | Audio buffered before the detection window (ms) |
   </Accordion>
 
   <Accordion title="ElevenLabsTtsConfig">
-    Configure server-side text-to-speech with ElevenLabs.
+    Configure server-side text-to-speech with ElevenLabs. Pass an instance to `RealtimeModel(tts_config=...)` to enable audio output and automatic interruption handling.
 
     | Parameter | Type | Description |
     |-----------|------|-------------|
     | `api_key` | `str` | ElevenLabs API key (env: `ELEVENLABS_API_KEY`) |
     | `voice_id` | `str` | Voice ID (env: `ELEVENLABS_VOICE_ID`) |
     | `model_id` | `str \| None` | Model ID, e.g., `eleven_turbo_v2` (env: `ELEVENLABS_MODEL_ID`) |
+    | `location` | `ElevenLabsLocation` | API endpoint region — `US` (default), `EU`, or `INDIA` |
+    | `voice_settings` | `ElevenLabsVoiceSettingsConfig \| None` | Fine-grained voice control (see below) |
 
     Use `ElevenLabsTtsConfig.from_env()` to create a config from environment variables.
 
+    **`ElevenLabsVoiceSettingsConfig`** — fine-grained control over the synthesized voice:
+
+    | Parameter | Type | Description |
+    |-----------|------|-------------|
+    | `stability` | `float \| None` | Voice consistency (0.0–1.0); higher = more stable |
+    | `similarity_boost` | `float \| None` | Clarity and similarity to the original voice (0.0–1.0) |
+    | `style` | `float \| None` | Style exaggeration (0.0–1.0) |
+    | `use_speaker_boost` | `bool \| None` | Boost similarity to the original speaker |
+    | `speed` | `float \| None` | Speaking speed multiplier |
+
+    ```python
+    from deepslate.livekit.realtime import (
+        ElevenLabsTtsConfig,
+        ElevenLabsVoiceSettingsConfig,
+        ElevenLabsLocation,
+    )
+
+    tts_config = ElevenLabsTtsConfig.from_env(
+        location=ElevenLabsLocation.EU,
+        voice_settings=ElevenLabsVoiceSettingsConfig(
+            stability=0.7,
+            similarity_boost=0.85,
+            speed=1.1,
+        ),
+    )
+    ```
+
     <Tip>
-    When using ElevenLabs TTS, automatic interruption handling (context truncation) is enabled. Without server-side TTS, you can use LiveKit's standard TTS integration, but interruption handling will not work.
+    When using ElevenLabs TTS, automatic interruption handling (context truncation) is enabled. The server tracks exactly what was spoken before the interruption, keeping the model's context accurate. Without server-side TTS, you can use LiveKit's standard TTS integration, but this interruption context tracking will not be available.
     </Tip>
   </Accordion>
 </AccordionGroup>
@@ -128,13 +165,25 @@ if __name__ == "__main__":
     Low-latency bidirectional audio streaming for natural conversations
   </Card>
   <Card title="Server-side VAD" icon="microphone">
-    Voice activity detection handled server-side for reliable speech detection
+    Voice activity detection handled server-side for reliable, configurable speech detection
   </Card>
   <Card title="Function Tools" icon="wrench">
     Define and use function tools with the `@function_tool()` decorator
   </Card>
   <Card title="ElevenLabs TTS" icon="volume-high">
-    Server-side text-to-speech with automatic interruption handling
+    Server-side TTS with regional endpoints and fine-grained voice settings
+  </Card>
+  <Card title="Direct Speech" icon="comment-dots">
+    Speak text directly via TTS without routing through the LLM
+  </Card>
+  <Card title="Conversation Queries" icon="magnifying-glass">
+    Run one-shot side-channel inference without affecting the main conversation
+  </Card>
+  <Card title="Chat History Export" icon="clock-rotate-left">
+    Export the full conversation history on demand
+  </Card>
+  <Card title="Live Configuration" icon="sliders">
+    Update the system prompt and temperature mid-session without reconnecting
   </Card>
 </CardGroup>
 
@@ -146,7 +195,7 @@ Use the `@function_tool()` decorator to give your agent capabilities:
 from livekit.agents import function_tool
 
 @function_tool()
-def get_weather(location: str) -> str:
+async def lookup_weather(location: str) -> str:
     """Get the current weather for a location.
 
     Args:
@@ -159,13 +208,74 @@ class WeatherAssistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions="You are a helpful weather assistant.",
-            tools=[get_weather]
+            tools=[lookup_weather],
         )
 ```
 
+## Direct Speech
+
+`speak_direct()` lets you synthesize and play audio directly — bypassing the LLM entirely. This is useful for scripted prompts, confirmations, or fallback messages.
+
+```python
+# Inside a session or agent callback
+await session.llm.session().speak_direct(
+    "Welcome back! How can I help you today?",
+    include_in_history=True,  # Record as an assistant turn (default: True)
+)
+```
+
+Setting `include_in_history=False` speaks the text without adding it to the conversation context — ideal for system-level announcements.
+
+## Conversation Queries
+
+`query_conversation()` runs a one-shot inference call on a side channel, separate from the main conversational turn. The result is returned as a string and does **not** affect the conversation history or trigger any audio.
+
+```python
+summary = await session.llm.session().query_conversation(
+    prompt="Summarize the conversation so far in one sentence.",
+)
+print(summary)  # e.g., "The user asked about weather in Berlin."
+```
+
+You can also pass `instructions` to further constrain the model's output format.
+
+## Chat History Export
+
+Export the full conversation history as a list of structured message dicts at any point during a session:
+
+```python
+from livekit.agents import EventTypes
+
+# Listen for the export result
+@session.llm.session().on("chat_history_exported")
+def on_history(messages):
+    for msg in messages:
+        print(msg["role"], msg["content"])
+
+# Request the export
+await session.llm.session().export_chat_history(
+    await_pending=False,  # Set True to wait for any in-flight operations first
+)
+```
+
+Each message follows the `ChatMessageDict` structure with `role`, `delivery_status`, `ephemeral`, and a `content` list of typed content blocks (`text`, `input_audio`, `tool_call`, `tool_result`, etc.).
+
+## Live Configuration
+
+Update the system prompt or temperature mid-session without reconnecting:
+
+```python
+await session.llm.update_options(
+    system_prompt="You are now a concise assistant. Keep replies under two sentences.",
+    temperature=0.8,
+)
+```
+
+Changes take effect on the next model turn.
+
 ## Contributing
 
-This plugin is open source and we welcome contributions. Visit the [GitHub repository](https://github.com/rooms-solutions/deepslate-livekit) to:
+This plugin is open source. Visit the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks) to:
 
 - Report issues
 - Submit pull requests
@@ -183,7 +293,7 @@ This plugin is open source and we welcome contributions. Visit the [GitHub repos
   <Card title="LiveKit Agents Docs" icon="book" href="https://docs.livekit.io/agents/">
     LiveKit Agents framework documentation
   </Card>
-  <Card title="GitHub Repository" icon="github" href="https://github.com/rooms-solutions/deepslate-livekit">
+  <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-sdks">
     Source code, issues, and contributions
   </Card>
 </CardGroup>
