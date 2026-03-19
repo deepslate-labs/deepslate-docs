@@ -4,10 +4,10 @@ description: 'Integrate Deepslate voice AI with Pipecat for real-time voice appl
 icon: 'microphone-lines'
 ---
 
-The `deepslate-pipecat` package provides an `LLMService` implementation for the [Pipecat](https://github.com/pipecat-ai/pipecat) framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
+The `deepslate-pipecat` package provides a `DeepslateRealtimeLLMService` implementation for the [Pipecat](https://github.com/pipecat-ai/pipecat) framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
 
 <Note>
-This plugin is in early development. We welcome contributions! See the [GitHub repository](https://github.com/deepslate-labs/deepslate-pipecat) to get involved.
+This plugin lives in the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks). We welcome contributions — feel free to open issues or pull requests there.
 </Note>
 
 ## Prerequisites
@@ -20,7 +20,7 @@ This plugin is in early development. We welcome contributions! See the [GitHub r
 ## Installation
 
 ```bash
-pip install git+https://github.com/deepslate-labs/deepslate-pipecat.git
+pip install deepslate-pipecat
 ```
 
 ## Environment Variables
@@ -45,11 +45,9 @@ Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is fo
 ```python
 import asyncio
 import os
-import sys
 
 import aiohttp
 from dotenv import load_dotenv
-from loguru import logger
 
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
@@ -61,7 +59,6 @@ from deepslate.pipecat import DeepslateOptions, DeepslateRealtimeLLMService, Ele
 load_dotenv()
 
 async def main():
-    # Fetch a Daily meeting token
     async with aiohttp.ClientSession() as session:
         room_name = os.environ["DAILY_ROOM_URL"].split("/")[-1]
         async with session.post(
@@ -106,7 +103,7 @@ if __name__ == "__main__":
 
 <AccordionGroup>
   <Accordion title="DeepslateOptions">
-    The main configuration class for connecting to the Deepslate API. Use `DeepslateOptions.from_env()` to load credentials from environment variables, with optional overrides.
+    The main configuration class for connecting to the Deepslate API. Use `DeepslateOptions.from_env()` to load credentials from environment variables, with optional keyword overrides.
 
     | Parameter | Type | Default | Description |
     |-----------|------|---------|-------------|
@@ -115,27 +112,29 @@ if __name__ == "__main__":
     | `api_key` | `str` | env: `DEEPSLATE_API_KEY` | Your Deepslate API key |
     | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
     | `system_prompt` | `str` | `"You are a helpful assistant."` | System prompt for the model |
-    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL (bypasses standard URL construction, useful for local testing) |
+    | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
+    | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds waiting for a model reply (0 = no timeout) |
+    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
     | `max_retries` | `int` | `3` | Maximum reconnection attempts before emitting an `ErrorFrame` |
   </Accordion>
 
   <Accordion title="VAD Configuration">
-    Pass a `DeepslateVadConfig` to `DeepslateRealtimeLLMService` to tune server-side Voice Activity Detection.
+    Pass a `VadConfig` to `DeepslateRealtimeLLMService` to tune server-side Voice Activity Detection. Disable client-side VAD on your transport since Deepslate handles it.
 
     | Parameter | Type | Default | Description |
     |-----------|------|---------|-------------|
-    | `confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
+    | `confidence_threshold` | `float` | `0.5` | Minimum confidence to classify audio as speech (0.0–1.0) |
     | `min_volume` | `float` | `0.01` | Minimum volume threshold (0.0–1.0) |
-    | `start_duration_ms` | `int` | `200` | Duration of speech required to detect speech start (ms) |
-    | `stop_duration_ms` | `int` | `500` | Duration of silence required to detect speech end (ms) |
-    | `backbuffer_duration_ms` | `int` | `1000` | Audio buffered before speech detection triggers (ms) |
+    | `start_duration_ms` | `int` | `200` | Consecutive speech required to detect a turn start (ms) |
+    | `stop_duration_ms` | `int` | `500` | Silence required to detect a turn end (ms) |
+    | `backbuffer_duration_ms` | `int` | `1000` | Audio buffered before the detection window (ms) |
 
     ```python
-    from deepslate.pipecat import DeepslateVadConfig, DeepslateRealtimeLLMService
+    from deepslate.pipecat import VadConfig, DeepslateRealtimeLLMService
 
     llm = DeepslateRealtimeLLMService(
         options=opts,
-        vad_config=DeepslateVadConfig(
+        vad_config=VadConfig(
             confidence_threshold=0.3,
             stop_duration_ms=300,
         ),
@@ -144,18 +143,47 @@ if __name__ == "__main__":
   </Accordion>
 
   <Accordion title="ElevenLabsTtsConfig">
-    Configure server-side text-to-speech with ElevenLabs via Deepslate.
+    Configure server-side text-to-speech with ElevenLabs via Deepslate. Pass an instance to `DeepslateRealtimeLLMService(tts_config=...)` to enable PCM audio output.
 
     | Parameter | Type | Description |
     |-----------|------|-------------|
     | `api_key` | `str` | ElevenLabs API key (env: `ELEVENLABS_API_KEY`) |
     | `voice_id` | `str` | Voice ID (env: `ELEVENLABS_VOICE_ID`) |
     | `model_id` | `str \| None` | Model ID, e.g., `eleven_turbo_v2` (env: `ELEVENLABS_MODEL_ID`) |
+    | `location` | `ElevenLabsLocation` | API endpoint region — `US` (default), `EU`, or `INDIA` |
+    | `voice_settings` | `ElevenLabsVoiceSettingsConfig \| None` | Fine-grained voice control (see below) |
 
     Use `ElevenLabsTtsConfig.from_env()` to create a config from environment variables.
 
+    **`ElevenLabsVoiceSettingsConfig`** — fine-grained control over the synthesized voice:
+
+    | Parameter | Type | Description |
+    |-----------|------|-------------|
+    | `stability` | `float \| None` | Voice consistency (0.0–1.0); higher = more stable |
+    | `similarity_boost` | `float \| None` | Clarity and similarity to the original voice (0.0–1.0) |
+    | `style` | `float \| None` | Style exaggeration (0.0–1.0) |
+    | `use_speaker_boost` | `bool \| None` | Boost similarity to the original speaker |
+    | `speed` | `float \| None` | Speaking speed multiplier |
+
+    ```python
+    from deepslate.pipecat import (
+        ElevenLabsTtsConfig,
+        ElevenLabsVoiceSettingsConfig,
+        ElevenLabsLocation,
+    )
+
+    tts_config = ElevenLabsTtsConfig.from_env(
+        location=ElevenLabsLocation.EU,
+        voice_settings=ElevenLabsVoiceSettingsConfig(
+            stability=0.7,
+            similarity_boost=0.85,
+            speed=1.1,
+        ),
+    )
+    ```
+
     <Tip>
-    Server-side TTS enables automatic interruption handling — when the user interrupts, Deepslate truncates the response context so the model knows what was actually spoken. Without server-side TTS, the service emits `TTSTextFrame` for a downstream Pipecat TTS service, but interruption context truncation will not work.
+    Server-side TTS enables automatic interruption handling. When the user interrupts, Deepslate tracks exactly what was spoken and truncates the context accordingly. Without server-side TTS, the service emits `LLMTextFrame` for a downstream Pipecat TTS service, but this interruption context tracking will not be available.
     </Tip>
   </Accordion>
 </AccordionGroup>
@@ -173,7 +201,19 @@ if __name__ == "__main__":
     Full tool/function calling support using OpenAI JSON schema format with async handlers
   </Card>
   <Card title="ElevenLabs TTS" icon="volume-high">
-    Server-side text-to-speech with automatic interruption handling
+    Server-side TTS with regional endpoints and fine-grained voice settings
+  </Card>
+  <Card title="Direct Speech" icon="comment-dots">
+    Speak text directly via TTS without routing through the LLM
+  </Card>
+  <Card title="Conversation Queries" icon="magnifying-glass">
+    Run one-shot side-channel inference without affecting the main conversation
+  </Card>
+  <Card title="Chat History Export" icon="clock-rotate-left">
+    Export the full structured conversation history on demand
+  </Card>
+  <Card title="Dynamic Context Injection" icon="bolt">
+    Inject user or system messages mid-conversation via `LLMMessagesAppendFrame`
   </Card>
   <Card title="Automatic Reconnection" icon="rotate">
     Exponential-backoff reconnection with a configurable retry limit
@@ -222,6 +262,109 @@ llm.register_function("lookup_weather", lookup_weather)
 # Queue tool definitions — synced to Deepslate after the pipeline starts
 await task.queue_frame(LLMSetToolsFrame(tools=TOOLS))
 ```
+
+## Dynamic Context Injection
+
+Inject messages into the live conversation context without restarting the session. This is useful for passing user profile data, injecting tool results from external systems, or priming the model with background context.
+
+```python
+from pipecat.frames.frames import LLMMessagesAppendFrame
+from pipecat.processors.llm.base import OpenAILLMContextFrame
+
+# Inject a user message mid-conversation
+await task.queue_frame(
+    LLMMessagesAppendFrame(
+        messages=[{"role": "user", "content": "My name is Alice and I prefer short answers."}]
+    )
+)
+```
+
+Use `LLMMessagesUpdateFrame` to resync the full context and optionally trigger an immediate model reply.
+
+## Direct Speech
+
+Push a `DeepslateDirectSpeechFrame` to synthesize and play text directly — bypassing the LLM entirely. Useful for scripted prompts, confirmations, or fallback messages.
+
+```python
+from deepslate.pipecat.frames import DeepslateDirectSpeechFrame
+
+await task.queue_frame(
+    DeepslateDirectSpeechFrame(
+        text="Welcome back! How can I help you today?",
+        include_in_history=True,  # Records as an assistant turn (default: True)
+    )
+)
+```
+
+Set `include_in_history=False` to speak without adding the text to the conversation context — ideal for system-level announcements.
+
+## Conversation Queries
+
+A `DeepslateConversationQueryFrame` runs a one-shot inference call on a side channel. The result arrives as a `DeepslateConversationQueryResultFrame` and does **not** affect the main conversation history or trigger any audio output.
+
+```python
+from deepslate.pipecat.frames import (
+    DeepslateConversationQueryFrame,
+    DeepslateConversationQueryResultFrame,
+)
+
+# Send the query
+await task.queue_frame(
+    DeepslateConversationQueryFrame(
+        prompt="Summarize the conversation so far in one sentence.",
+        instructions="Respond in plain text only, no formatting.",
+    )
+)
+
+# Receive the result downstream in your pipeline
+# DeepslateConversationQueryResultFrame.text contains the model's reply
+```
+
+This is useful for background analysis, logging summaries, or deciding on the next action without affecting the user-facing conversation.
+
+## Chat History Export
+
+Push a `DeepslateExportChatHistoryFrame` to request the full conversation history. The result arrives as a `DeepslateChatHistoryFrame` downstream in the pipeline.
+
+```python
+from deepslate.pipecat.frames import (
+    DeepslateExportChatHistoryFrame,
+    DeepslateChatHistoryFrame,
+)
+
+# Request the export
+await task.queue_frame(
+    DeepslateExportChatHistoryFrame(
+        await_pending=False,  # Set True to wait for any in-flight operations first
+    )
+)
+
+# Handle the result in a downstream processor
+# DeepslateChatHistoryFrame.messages is a list[ChatMessageDict]
+```
+
+Each `ChatMessageDict` has `role`, `delivery_status`, `ephemeral`, and a `content` list of typed blocks (`text`, `input_audio`, `tool_call`, `tool_result`, and more).
+
+## Custom Frames Reference
+
+In addition to standard Pipecat frames, `deepslate-pipecat` exposes the following frames for controlling and observing Deepslate-specific behaviour.
+
+### Input Frames (push into the pipeline)
+
+| Frame | Description |
+|-------|-------------|
+| `DeepslateExportChatHistoryFrame` | Request a full chat history export. `await_pending: bool` — wait for in-flight ops before exporting. |
+| `DeepslateDirectSpeechFrame` | Speak text directly via TTS, bypassing the LLM. `text: str`, `include_in_history: bool`. |
+| `DeepslateConversationQueryFrame` | One-shot side-channel inference. `prompt: str \| None`, `instructions: str \| None`. |
+
+### Output Frames (emitted by the service)
+
+| Frame | Description |
+|-------|-------------|
+| `DeepslateChatHistoryFrame` | Chat history export result. `messages: list[ChatMessageDict]`. |
+| `DeepslateConversationQueryResultFrame` | Side-channel query result. `text: str`. |
+| `DeepslateUserTranscriptionFrame` | User speech-to-text transcription from Deepslate. |
+| `DeepslateModelTranscriptionFrame` | Word-aligned transcription for the model's TTS audio. `text: str`. |
 
 ## Transport Examples
 
@@ -281,7 +424,7 @@ The Deepslate service is transport-agnostic. Swap the transport to suit your dep
 
 ## Contributing
 
-This plugin is open source and we welcome contributions. Visit the [GitHub repository](https://github.com/deepslate-labs/deepslate-pipecat) to:
+This plugin is open source. Visit the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks) to:
 
 - Report issues
 - Submit pull requests
@@ -296,7 +439,7 @@ This plugin is open source and we welcome contributions. Visit the [GitHub repos
   <Card title="Pipecat Docs" icon="book" href="https://docs.pipecat.ai/">
     Pipecat framework documentation
   </Card>
-  <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-pipecat">
+  <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-sdks">
     Source code, issues, and contributions
   </Card>
 </CardGroup>
