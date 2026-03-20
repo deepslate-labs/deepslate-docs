@@ -1,0 +1,148 @@
+---
+title: 'Deepslate SDKs'
+description: 'Official Python SDKs for integrating Deepslate voice AI into your agent framework'
+icon: 'cube'
+---
+
+Deepslate provides **official Python SDKs** for connecting your voice AI application to the Deepslate Realtime API. All SDKs live in a single [open-source monorepo](https://github.com/deepslate-labs/deepslate-sdks) and share a common core, giving you a consistent configuration model and feature set regardless of which agent framework you use.
+
+## What Deepslate provides
+
+Every SDK gives your application access to Deepslate's unified voice AI stack over a single WebSocket connection:
+
+<CardGroup cols={2}>
+  <Card title="Speech-to-Speech Streaming" icon="waveform-lines">
+    Send raw PCM audio in, receive synthesized PCM audio out — all in real time
+  </Card>
+  <Card title="Server-side VAD" icon="microphone">
+    Voice Activity Detection runs on the server, so you don't need a client-side VAD pipeline
+  </Card>
+  <Card title="LLM Inference" icon="brain">
+    Deepslate manages the inference lifecycle, including tool calling, context management, and interruption handling
+  </Card>
+  <Card title="ElevenLabs TTS" icon="volume-high">
+    Optional server-side text-to-speech with configurable voice, model, and regional endpoint
+  </Card>
+</CardGroup>
+
+## Packages
+
+The monorepo publishes three packages. Install only what you need — the framework plugins pull in `deepslate-core` automatically.
+
+<CardGroup cols={2}>
+  <Card title="deepslate-livekit" icon="tower-broadcast" href="/livekit">
+    `RealtimeModel` plugin for [LiveKit Agents](https://github.com/livekit/agents). Drop into any LiveKit Agents project with a one-line model swap.
+  </Card>
+  <Card title="deepslate-pipecat" icon="pipe-valve" href="/pipecat">
+    `LLMService` plugin for [Pipecat](https://github.com/pipecat-ai/pipecat). Integrates with any Pipecat transport and the full frame-based pipeline architecture.
+  </Card>
+</CardGroup>
+
+<CodeGroup>
+```bash LiveKit
+pip install deepslate-livekit
+```
+```bash Pipecat
+pip install deepslate-pipecat
+```
+</CodeGroup>
+
+View source on GitHub: [deepslate-livekit](https://github.com/deepslate-labs/deepslate-sdks/tree/main/packages/livekit) · [deepslate-pipecat](https://github.com/deepslate-labs/deepslate-sdks/tree/main/packages/pipecat)
+
+## Credentials
+
+All packages read credentials from the same three environment variables:
+
+```bash
+DEEPSLATE_VENDOR_ID=your_vendor_id
+DEEPSLATE_ORGANIZATION_ID=your_organization_id
+DEEPSLATE_API_KEY=your_api_key
+```
+
+Each configuration class (`DeepslateOptions`, `RealtimeModel`, etc.) accepts these as constructor arguments too, but environment variables are the recommended approach for keeping secrets out of your code.
+
+<Warning>
+Never expose these credentials to clients. All SDK packages are designed for **server-side use** only.
+</Warning>
+
+## deepslate-core
+
+`deepslate-core` is the shared foundation that both plugins are built on. It handles WebSocket connectivity, protobuf framing, session lifecycle, and exponential-backoff reconnection.
+
+<Note>
+You **don't need to install `deepslate-core` directly** when using the LiveKit or Pipecat plugins — they include it as a dependency. Install it only if you're building a **custom integration** outside of these frameworks.
+</Note>
+
+```bash
+pip install deepslate-core
+```
+
+The central building block is `DeepslateSession`, which manages the full protocol lifecycle and delivers events to a `DeepslateSessionListener` you subclass:
+
+```python
+from deepslate.core import (
+    DeepslateOptions,
+    DeepslateSession,
+    DeepslateSessionListener,
+)
+
+class MyListener(DeepslateSessionListener):
+    async def on_text_fragment(self, text: str) -> None:
+        print(text, end="", flush=True)
+
+    async def on_audio_chunk(
+        self, pcm_bytes: bytes, sample_rate: int, channels: int, transcript: str | None
+    ) -> None:
+        # Forward audio to your output device or transport
+        ...
+
+    async def on_tool_call(self, call_id: str, name: str, params: dict) -> None:
+        result = await dispatch_tool(name, params)
+        await self.session.send_tool_response(call_id, result)
+
+listener = MyListener()
+session = DeepslateSession.create(
+    DeepslateOptions.from_env(),
+    listener=listener,
+)
+listener.session = session
+session.start()
+```
+
+For the full `DeepslateSession` API — including all send methods and listener callbacks — see the [deepslate-core source](https://github.com/deepslate-labs/deepslate-sdks/tree/main/packages/core).
+
+## Repository
+
+All packages are maintained in a single monorepo managed with [`uv`](https://docs.astral.sh/uv/) workspaces:
+
+```
+deepslate-sdks/
+├── packages/
+│   ├── core/      # deepslate-core — shared WebSocket client and session logic
+│   ├── livekit/   # deepslate-livekit — LiveKit Agents plugin
+│   └── pipecat/   # deepslate-pipecat — Pipecat plugin
+└── pyproject.toml # uv workspace root
+```
+
+Contributions are welcome. To set up a local development environment:
+
+```bash
+git clone https://github.com/deepslate-labs/deepslate-sdks.git
+cd deepslate-sdks
+uv sync --all-packages
+```
+
+<CardGroup cols={2}>
+  <Card title="LiveKit Plugin" icon="tower-broadcast" href="/sdks/livekit">
+    Full configuration reference, features, and examples
+  </Card>
+  <Card title="Pipecat Plugin" icon="pipe-valve" href="/sdks/pipecat">
+    Full configuration reference, features, and frame reference
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-sdks">
+    Source code, issues, and contributions
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/realtime">
+    WebSocket message schemas and protocol documentation
+  </Card>
+</CardGroup>
