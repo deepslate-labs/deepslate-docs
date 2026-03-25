@@ -151,6 +151,16 @@
               "api-reference/sip-numbers/delete",
               "api-reference/sip-numbers/find"
             ]
+          },
+          {
+            "group": "LLM Generation Strategies",
+            "pages": [
+              "api-reference/llm-generation-strategies/list",
+              "api-reference/llm-generation-strategies/create",
+              "api-reference/llm-generation-strategies/get",
+              "api-reference/llm-generation-strategies/update",
+              "api-reference/llm-generation-strategies/delete"
+            ]
           }
         ]
       }

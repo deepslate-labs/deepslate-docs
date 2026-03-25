@@ -43,6 +43,10 @@
     {
       "name": "Agent Management",
       "description": "API endpoints for managing Agents within an Organization"
+    },
+    {
+      "name": "LLM Generation Strategy Management",
+      "description": "API endpoints for managing LLM Generation Strategies within an Organization"
     }
   ],
   "paths": {
@@ -2385,6 +2389,357 @@
           },
           "404": {
             "description": "Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/llm-generation-strategies": {
+      "get": {
+        "tags": [
+          "LLM Generation Strategy Management"
+        ],
+        "summary": "List LLM Generation Strategies",
+        "description": "Retrieves a paginated list of LLM generation strategies belonging to a specific organization, filtered by user permissions.",
+        "operationId": "getLlmGenerationStrategies",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number of the requested page (0-indexed)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'name,asc'. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "name,asc"
+            },
+            "example": "name,desc"
+          },
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of LLM generation strategies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmGenerationStrategyDescriptionPagedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "LLM Generation Strategy Management"
+        ],
+        "summary": "Create LLM Generation Strategy",
+        "description": "Creates a new LLM generation strategy within the specified organization.",
+        "operationId": "createLlmGenerationStrategy",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          }
+        ],
+        "requestBody": {
+          "description": "Strategy creation data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmGenerationStrategyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Strategy successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmGenerationStrategyDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Unknown or missing strategy type"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Organization or Vendor not found"
+          }
+        }
+      }
+    },
+    "/api/v1/vendors/{vendorId}/organizations/{organizationId}/llm-generation-strategies/{strategyId}": {
+      "get": {
+        "tags": [
+          "LLM Generation Strategy Management"
+        ],
+        "summary": "Get LLM Generation Strategy Details",
+        "description": "Retrieves detailed information about a specific LLM generation strategy.",
+        "operationId": "getLlmGenerationStrategy",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "strategyId",
+            "in": "path",
+            "description": "ID of the LLM Generation Strategy (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved strategy details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmGenerationStrategyDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Strategy, Organization or Vendor not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "LLM Generation Strategy Management"
+        ],
+        "summary": "Update LLM Generation Strategy",
+        "description": "Updates an existing LLM generation strategy's configuration.",
+        "operationId": "updateLlmGenerationStrategy",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "strategyId",
+            "in": "path",
+            "description": "ID of the LLM Generation Strategy to update (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "requestBody": {
+          "description": "Strategy update data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmGenerationStrategyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Strategy successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmGenerationStrategyDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Unknown or missing strategy type"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Strategy, Organization or Vendor not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "LLM Generation Strategy Management"
+        ],
+        "summary": "Delete LLM Generation Strategy",
+        "description": "Deletes a specific LLM generation strategy. Fails if the strategy is still in use by an assistant or agent.",
+        "operationId": "deleteLlmGenerationStrategy",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "description": "ID of the Vendor (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          {
+            "name": "organizationId",
+            "in": "path",
+            "description": "ID of the Organization (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          {
+            "name": "strategyId",
+            "in": "path",
+            "description": "ID of the LLM Generation Strategy to delete (UUID)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Strategy successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Strategy is still in use by an assistant or agent"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - User does not have permission"
+          },
+          "404": {
+            "description": "Strategy, Organization or Vendor not found"
           }
         }
       }
@@ -5333,6 +5688,281 @@
             "description": "List of data items",
             "items": {
               "$ref": "#/components/schemas/AgentTaskDescription"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Current page number (0-indexed)",
+            "example": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Size of each page",
+            "example": 20
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of elements",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of pages",
+            "example": 5
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "page",
+          "size",
+          "success",
+          "timestamp",
+          "totalElements",
+          "totalPages"
+        ]
+      },
+      "LlmGenerationStrategyCreate": {
+        "type": "object",
+        "description": "Request body for creating a new LLM Generation Strategy.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the strategy.",
+            "example": "My Opal Strategy"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier of the strategy.",
+            "example": "phonebot-v2.1"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type.",
+            "additionalProperties": true,
+            "example": {
+              "temperature": 0.2,
+              "outputSampleRate": 44100,
+              "voice": {
+                "provider": "elevenlabs",
+                "voiceId": "lcMyyd2HUfFzxdCaC4Ta",
+                "modelId": "eleven_multilingual_v2",
+                "speed": 1.0,
+                "stability": 0.5,
+                "similarityBoost": 0.75,
+                "style": 0.0,
+                "useSpeakerBoost": false
+              },
+              "vad": {
+                "confidenceThreshold": 0.5,
+                "minVolume": 0.0,
+                "startDuration": 0.3,
+                "stopDuration": 0.7,
+                "backbufferDuration": 1.0
+              }
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "parameters"
+        ]
+      },
+      "LlmGenerationStrategyUpdate": {
+        "type": "object",
+        "description": "Request body for updating an existing LLM Generation Strategy.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the strategy.",
+            "example": "My Updated Strategy"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier of the strategy.",
+            "example": "phonebot-v2.1"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type.",
+            "additionalProperties": true,
+            "example": {
+              "temperature": 0.2,
+              "outputSampleRate": 44100,
+              "voice": {
+                "provider": "elevenlabs",
+                "voiceId": "lcMyyd2HUfFzxdCaC4Ta",
+                "modelId": "eleven_multilingual_v2",
+                "speed": 1.0,
+                "stability": 0.5,
+                "similarityBoost": 0.75,
+                "style": 0.0,
+                "useSpeakerBoost": false
+              },
+              "vad": {
+                "confidenceThreshold": 0.5,
+                "minVolume": 0.0,
+                "startDuration": 0.3,
+                "stopDuration": 0.7,
+                "backbufferDuration": 1.0
+              }
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "parameters"
+        ]
+      },
+      "LlmGenerationStrategyDescription": {
+        "type": "object",
+        "description": "Basic identifying information for an LLM Generation Strategy, typically used in lists.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the strategy (UUID).",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the strategy.",
+            "example": "My Opal Strategy"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier of the strategy.",
+            "example": "phonebot-v2.1"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ]
+      },
+      "LlmGenerationStrategyDetails": {
+        "type": "object",
+        "description": "Detailed view of an LLM Generation Strategy's configuration.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the strategy (UUID).",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the strategy.",
+            "example": "My Opal Strategy"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type identifier of the strategy.",
+            "example": "phonebot-v2.1"
+          },
+          "organizationId": {
+            "type": "string",
+            "description": "ID of the organization this strategy belongs to (UUID).",
+            "example": "f0e9d8c7-b6a5-4321-fedc-ba9876543210"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type.",
+            "additionalProperties": true,
+            "example": {
+              "temperature": 0.2,
+              "outputSampleRate": 44100,
+              "voice": {
+                "provider": "elevenlabs",
+                "voiceId": "lcMyyd2HUfFzxdCaC4Ta",
+                "modelId": "eleven_multilingual_v2",
+                "speed": 1.0,
+                "stability": 0.5,
+                "similarityBoost": 0.75,
+                "style": 0.0,
+                "useSpeakerBoost": false
+              },
+              "vad": {
+                "confidenceThreshold": 0.5,
+                "minVolume": 0.0,
+                "startDuration": 0.3,
+                "stopDuration": 0.7,
+                "backbufferDuration": 1.0
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "parameters"
+        ]
+      },
+      "LlmGenerationStrategyDetailsResponse": {
+        "type": "object",
+        "description": "Standard API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LlmGenerationStrategyDetails",
+            "description": "Payload data object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Response timestamp in ISO-8601 format",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Correlation or trace ID"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "LlmGenerationStrategyDescriptionPagedResponse": {
+        "type": "object",
+        "description": "Paged API response wrapper",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message"
+          },
+          "data": {
+            "type": "array",
+            "description": "List of data items",
+            "items": {
+              "$ref": "#/components/schemas/LlmGenerationStrategyDescription"
             }
           },
           "page": {
