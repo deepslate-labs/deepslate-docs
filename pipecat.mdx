@@ -142,6 +142,23 @@ if __name__ == "__main__":
     ```
   </Accordion>
 
+  <Accordion title="HostedTtsConfig">
+    Use a voice cloned and hosted within Deepslate — no external TTS provider credentials required. Pass an instance to `DeepslateRealtimeLLMService(tts_config=...)` to enable PCM audio output.
+
+    | Parameter | Type | Description |
+    |-----------|------|-------------|
+    | `voice_id` | `str` | The ID of the hosted (cloned) voice to use for synthesis |
+
+    ```python
+    from deepslate.pipecat import HostedTtsConfig, DeepslateRealtimeLLMService
+
+    llm = DeepslateRealtimeLLMService(
+        options=opts,
+        tts_config=HostedTtsConfig(voice_id="c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f"),
+    )
+    ```
+  </Accordion>
+
   <Accordion title="ElevenLabsTtsConfig">
     Configure server-side text-to-speech with ElevenLabs via Deepslate. Pass an instance to `DeepslateRealtimeLLMService(tts_config=...)` to enable PCM audio output.
 
@@ -222,6 +239,26 @@ if __name__ == "__main__":
     Works with any Pipecat transport: Daily.co, Twilio, generic WebSocket, and more
   </Card>
 </CardGroup>
+
+## Session Initialized Frame
+
+`DeepslateRealtimeLLMService` emits a `DeepslateSessionInitializedFrame` exactly once, when the WebSocket session is fully initialized and ready to accept messages.
+
+```python
+from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
+from deepslate.pipecat.frames import DeepslateSessionInitializedFrame, DeepslateDirectSpeechFrame
+
+class WelcomeProcessor(FrameProcessor):
+    async def process_frame(self, frame, direction):
+        await self.push_frame(frame, direction)
+        if isinstance(frame, DeepslateSessionInitializedFrame):
+            await self.push_frame(
+                DeepslateDirectSpeechFrame(text="Hello! How can I help you today?"),
+                FrameDirection.DOWNSTREAM,
+            )
+
+pipeline = Pipeline([transport.input(), llm, WelcomeProcessor(), transport.output()])
+```
 
 ## Function Calling
 
@@ -361,6 +398,7 @@ In addition to standard Pipecat frames, `deepslate-pipecat` exposes the followin
 
 | Frame | Description |
 |-------|-------------|
+| `DeepslateSessionInitializedFrame` | Emitted once when the session is fully initialized and ready to accept messages. |
 | `DeepslateChatHistoryFrame` | Chat history export result. `messages: list[ChatMessageDict]`. |
 | `DeepslateConversationQueryResultFrame` | Side-channel query result. `text: str`. |
 | `DeepslateUserTranscriptionFrame` | User speech-to-text transcription from Deepslate. |
