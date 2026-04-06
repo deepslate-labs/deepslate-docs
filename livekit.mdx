@@ -91,7 +91,7 @@ if __name__ == "__main__":
     | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for `generate_reply` (0 = no timeout) |
     | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
-    | `tts_config` | `ElevenLabsTtsConfig \| None` | `None` | TTS configuration (enables audio output) |
+    | `tts_config` | `ElevenLabsTtsConfig \| HostedTtsConfig \| None` | `None` | TTS configuration (enables audio output). Use `ElevenLabsTtsConfig` for ElevenLabs synthesis or `HostedTtsConfig` for Deepslate-hosted cloned voices. |
     | `http_session` | `aiohttp.ClientSession \| None` | `None` | Shared aiohttp session |
     | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
     | `vad_min_volume` | `float` | `0.01` | Minimum volume threshold (0.0–1.0) |
@@ -110,6 +110,26 @@ if __name__ == "__main__":
     | `vad_start_duration_ms` | `200` | Consecutive speech duration required to start a turn (ms) |
     | `vad_stop_duration_ms` | `500` | Silence duration required to end a turn (ms) |
     | `vad_backbuffer_duration_ms` | `1000` | Audio buffered before the detection window (ms) |
+  </Accordion>
+
+  <Accordion title="HostedTtsConfig">
+    Use a voice cloned and hosted within Deepslate — no external TTS provider credentials required. Pass an instance to `RealtimeModel(tts_config=...)` to enable audio output.
+
+    | Parameter | Type | Description |
+    |-----------|------|-------------|
+    | `voice_id` | `str` | The ID of the hosted (cloned) voice to use for synthesis |
+
+    ```python
+    from deepslate.livekit.realtime import HostedTtsConfig
+
+    llm = deepslate.livekit.realtime.RealtimeModel(
+        tts_config=HostedTtsConfig(voice_id="c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f")
+    )
+    ```
+
+    <Tip>
+    Find your hosted voice IDs in the Deepslate dashboard under **Voices**.
+    </Tip>
   </Accordion>
 
   <Accordion title="ElevenLabsTtsConfig">
@@ -173,6 +193,9 @@ if __name__ == "__main__":
   <Card title="ElevenLabs TTS" icon="volume-high">
     Server-side TTS with regional endpoints and fine-grained voice settings
   </Card>
+  <Card title="Session Initialized Event" icon="bolt">
+    Know exactly when the session is ready and safely send the first message
+  </Card>
   <Card title="Direct Speech" icon="comment-dots">
     Speak text directly via TTS without routing through the LLM
   </Card>
@@ -186,6 +209,40 @@ if __name__ == "__main__":
     Update the system prompt and temperature mid-session without reconnecting
   </Card>
 </CardGroup>
+
+## Session Initialized Event
+
+`DeepslateRealtimeSession` emits a `"session_initialized"` event once the WebSocket session is fully set up and ready to accept messages. Use this instead of fixed delays to send a welcome message or perform any first-turn logic.
+
+```python
+import asyncio
+from livekit import agents
+from livekit.agents import AgentSession, Agent
+import deepslate.livekit.realtime
+from deepslate.livekit.realtime import ElevenLabsTtsConfig
+
+class Assistant(Agent):
+    def __init__(self) -> None:
+        super().__init__(instructions="You are a helpful voice AI assistant.")
+
+@server.rtc_session()
+async def my_agent(ctx: agents.JobContext):
+    model = deepslate.livekit.realtime.RealtimeModel(
+        tts_config=ElevenLabsTtsConfig.from_env()
+    )
+    session = AgentSession(llm=model)
+
+    deepslate_session = model.session()
+    deepslate_session.on("session_initialized", lambda _: asyncio.create_task(
+        deepslate_session.speak_direct("Hello! How can I help you today?")
+    ))
+
+    await session.start(room=ctx.room, agent=Assistant())
+```
+
+<Note>
+`model.session()` is available after `AgentSession` is created. Register the listener before calling `session.start()` to avoid missing the event.
+</Note>
 
 ## Function Tools
 
