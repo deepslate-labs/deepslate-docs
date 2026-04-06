@@ -189,9 +189,6 @@ if __name__ == "__main__":
   <Card title="ElevenLabs TTS" icon="volume-high">
     Server-side TTS with regional endpoints and fine-grained voice settings
   </Card>
-  <Card title="Session Initialized Event" icon="bolt">
-    Know exactly when the session is ready and safely send the first message
-  </Card>
   <Card title="Direct Speech" icon="comment-dots">
     Speak text directly via TTS without routing through the LLM
   </Card>
@@ -208,7 +205,7 @@ if __name__ == "__main__":
 
 ## Session Initialized Event
 
-`DeepslateRealtimeSession` emits a `"session_initialized"` event once the WebSocket session is fully set up and ready to accept messages. Use this instead of fixed delays to send a welcome message or perform any first-turn logic.
+`DeepslateRealtimeSession` emits a `"session_initialized"` event once the WebSocket session is fully set up and ready to accept messages.
 
 ```python
 import asyncio

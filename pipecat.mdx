@@ -229,9 +229,6 @@ if __name__ == "__main__":
   <Card title="Chat History Export" icon="clock-rotate-left">
     Export the full structured conversation history on demand
   </Card>
-  <Card title="Session Initialized Frame" icon="bolt">
-    Know exactly when the session is ready and safely send the first message downstream
-  </Card>
   <Card title="Dynamic Context Injection" icon="bolt">
     Inject user or system messages mid-conversation via `LLMMessagesAppendFrame`
   </Card>
@@ -245,7 +242,7 @@ if __name__ == "__main__":
 
 ## Session Initialized Frame
 
-`DeepslateRealtimeLLMService` emits a `DeepslateSessionInitializedFrame` exactly once, when the WebSocket session is fully initialized and ready to accept messages. Handle it in a downstream processor to send a welcome message or perform any first-turn logic — no fixed delays needed.
+`DeepslateRealtimeLLMService` emits a `DeepslateSessionInitializedFrame` exactly once, when the WebSocket session is fully initialized and ready to accept messages.
 
 ```python
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
