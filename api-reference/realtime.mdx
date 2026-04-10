@@ -560,14 +560,16 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
     | Field | Type | Description |
     |-------|------|-------------|
     | `voice_ref` | HostedVoiceRef | Reference to a hosted voice by ID |
+    | `mode` | HostedTtsMode | Quality/latency trade-off mode (default: `HIGH_QUALITY`) |
 
     ```json
     {
       "ttsConfiguration": {
         "hosted": {
           "voiceRef": {
-            "voiceId": "my-custom-voice"
-          }
+            "voiceId": "c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f"
+          },
+          "mode": "HIGH_QUALITY"
         }
       }
     }
@@ -596,6 +598,15 @@ Controls which ElevenLabs regional endpoint is used. See [ElevenLabs data reside
 | `US` | United States (default) — accessed via https://elevenlabs.io/ |
 | `EU` | European Union — requires ElevenLabs enterprise access |
 | `INDIA` | India — requires ElevenLabs enterprise access |
+
+### HostedTtsMode
+
+Controls the quality/latency trade-off for hosted TTS generation.
+
+| Value | Description |
+|-------|-------------|
+| `HIGH_QUALITY` | Default. Higher quality output with still relatively low latency. Recommended for most use cases. |
+| `LOW_LATENCY` | Fastest generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
 
 ### Duration
 
