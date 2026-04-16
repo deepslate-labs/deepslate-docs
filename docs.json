@@ -98,7 +98,20 @@
           {
             "group": "Agent Tasks",
             "pages": [
-              "api-reference/agent-tasks/list"
+              "api-reference/agent-tasks/list",
+              "api-reference/agent-tasks/create",
+              "api-reference/agent-tasks/get",
+              "api-reference/agent-tasks/execute",
+              "api-reference/agent-tasks/delete"
+            ]
+          },
+          {
+            "group": "Account",
+            "pages": [
+              "api-reference/account/get",
+              "api-reference/account/update-profile",
+              "api-reference/account/change-password",
+              "api-reference/account/change-email"
             ]
           },
           {
@@ -109,16 +122,6 @@
               "api-reference/organizations/get",
               "api-reference/organizations/update",
               "api-reference/organizations/delete"
-            ]
-          },
-          {
-            "group": "Plans",
-            "pages": [
-              "api-reference/plans/list",
-              "api-reference/plans/create",
-              "api-reference/plans/get",
-              "api-reference/plans/update",
-              "api-reference/plans/delete"
             ]
           },
           {

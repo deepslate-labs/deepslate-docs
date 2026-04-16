@@ -47,6 +47,10 @@
     {
       "name": "LLM Generation Strategy Management",
       "description": "API endpoints for managing LLM Generation Strategies within an Organization"
+    },
+    {
+      "name": "Account",
+      "description": "API endpoints for the currently authenticated user's account"
     }
   ],
   "paths": {
@@ -3080,6 +3084,145 @@
         }
       }
     },
+    "/api/v1/account": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Get Account Profile",
+        "description": "Returns the profile of the currently authenticated user.",
+        "operationId": "getAccountProfile",
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/account/profile": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Update Profile",
+        "description": "Updates the first and last name of the currently authenticated user.",
+        "operationId": "updateAccountProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/account/password": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Change Password",
+        "description": "Changes the password of the currently authenticated user.",
+        "operationId": "changeAccountPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountPasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Current password incorrect or invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/account/email": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Change Email",
+        "description": "Initiates an email change. Zitadel sends a verification email to the new address; the old email stays active until confirmed.",
+        "operationId": "changeAccountEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountEmailChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Verification email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}/tasks/{taskId}": {
       "get": {
         "tags": [
@@ -3239,6 +3382,97 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "AccountProfileResponse": {
+        "type": "object",
+        "description": "Response wrapper containing the authenticated user's profile.",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "firstName": {
+                "type": "string",
+                "example": "string"
+              },
+              "lastName": {
+                "type": "string",
+                "example": "string"
+              },
+              "email": {
+                "type": "string",
+                "example": "string"
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-04-17T14:23:30Z"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "timestamp"
+        ]
+      },
+      "AccountProfileUpdate": {
+        "type": "object",
+        "description": "Data required to update the authenticated user's profile.",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "example": "string"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "string"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName"
+        ]
+      },
+      "AccountPasswordChange": {
+        "type": "object",
+        "description": "Data required to change the authenticated user's password.",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "example": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "AccountEmailChange": {
+        "type": "object",
+        "description": "Data required to initiate an email address change.",
+        "properties": {
+          "newEmail": {
+            "type": "string",
+            "example": "string"
+          }
+        },
+        "required": [
+          "newEmail"
         ]
       },
       "EmptyResponse": {
