@@ -106,15 +106,6 @@
             ]
           },
           {
-            "group": "Account",
-            "pages": [
-              "api-reference/account/get",
-              "api-reference/account/update-profile",
-              "api-reference/account/change-password",
-              "api-reference/account/change-email"
-            ]
-          },
-          {
             "group": "Organizations",
             "pages": [
               "api-reference/organizations/list",
