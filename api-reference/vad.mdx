@@ -284,25 +284,26 @@ The VAD pipeline is a debounced state machine. Raw confidence and volume signals
 
 A typical VAD session follows this sequence:
 
-```
-Client                              Server
-  |                                   |
-  |-- InitializeSessionRequest ------->|
-  |                                   |
-  |<---------- SessionReady ----------|
-  |                                   |
-  |-- UserInput (audio) -------------->|
-  |-- UserInput (audio) -------------->|
-  |                                   |
-  |<------- VadStateEvent ------------|  (SILENCE → SPEECH_STARTING)
-  |<------- VadStateEvent ------------|  (SPEECH_STARTING → SPEECH)
-  |                                   |
-  |-- UserInput (audio) -------------->|
-  |                                   |
-  |<------- VadStateEvent ------------|  (SPEECH → SPEECH_ENDING)
-  |<------- VadStateEvent ------------|  (SPEECH_ENDING → SILENCE)
-  |                                   |
-  | (connection closed by either side)|
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    C->>S: InitializeSessionRequest
+    S->>C: SessionReady
+
+    C->>S: UserInput (audio)
+    C->>S: UserInput (audio)
+
+    S->>C: VadStateEvent (SILENCE → SPEECH_STARTING)
+    S->>C: VadStateEvent (SPEECH_STARTING → SPEECH)
+
+    C->>S: UserInput (audio)
+
+    S->>C: VadStateEvent (SPEECH → SPEECH_ENDING)
+    S->>C: VadStateEvent (SPEECH_ENDING → SILENCE)
+
+    note over C,S: Connection closed by either side
 ```
 
 <Note>
