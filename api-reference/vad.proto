@@ -1,0 +1,273 @@
+syntax = "proto3";
+
+package eu.deepslate.realtime.speeq;
+
+/*
+ * Enumeration of supported audio sample formats.
+ */
+enum SampleFormat {
+  // 8-bit unsigned integer samples.
+  UNSIGNED_8_BIT = 0;
+
+  // 16-bit signed integer samples.
+  SIGNED_16_BIT = 1;
+
+  // 32-bit signed integer samples.
+  SIGNED_32_BIT = 2;
+
+  // 32-bit floating point samples (0.0 to 1.0).
+  FLOAT_32_BIT = 3;
+
+  // 64-bit floating point samples (0.0 to 1.0).
+  FLOAT_64_BIT = 4;
+}
+
+/*
+ * Duration message representing a span of time.
+ */
+message Duration {
+  // Whole seconds of the duration.
+  uint64 seconds = 1;
+
+  // Nanoseconds component of the duration.
+  uint32 nanos = 2;
+}
+
+/*
+ * Configuration for an audio line.
+ *
+ * The service always assumes that audio is raw PCM.
+ */
+message AudioLineConfiguration {
+  // Sample rate in Hz.
+  uint32 sample_rate = 1;
+
+  // Number of audio channels.
+  uint32 channel_count = 2;
+
+  // Sample format.
+  SampleFormat sample_format = 3;
+}
+
+message VadConfiguration {
+  // Minimum confidence required to consider audio as speech (0.0 to 1.0).
+  float confidence_threshold = 1;
+
+  // Minimum volume level to consider audio as speech (0.0 to 1.0).
+  float min_volume = 2;
+
+  // Duration of speech to detect start of speech.
+  Duration start_duration = 3;
+
+  // Duration of silence to detect end of speech.
+  Duration stop_duration = 4;
+
+  // Duration of audio to buffer before speech detection.
+  // This allows capturing audio from before speech starts.
+  //
+  // Recommended duration is 1 second.
+  Duration backbuffer_duration = 5;
+}
+
+/*
+ * State machine output of the VAD pipeline.
+ *
+ * The state machine debounces raw VAD confidence/volume signals using the
+ * `start_duration` / `stop_duration` thresholds in `VadConfiguration`.
+ */
+enum VadState {
+  SILENCE = 0;
+  SPEECH_STARTING = 1;
+  SPEECH = 2;
+  SPEECH_ENDING = 3;
+}
+
+/*
+ * Per-frame VAD signal. Frames are emitted at the VAD frame rate
+ * (typically 50 Hz at 20ms frames on 16 kHz audio). Only emitted when
+ * `enable_vad_frame_telemetry` is true on the InitializeSessionRequest.
+ *
+ * Frame indexing is monotonic per session and reflects the post-resampling
+ * frame stream that the VAD engine actually saw.
+ *
+ * This is experimental and may be removed or changed without a major version bump.
+ */
+message VadAnalysisFrame {
+  // Monotonic frame index per session.
+  uint64 frame_index = 1;
+
+  // Time elapsed since the input pipeline started, at the boundary of this
+  // frame. This is wall-clock time, not audio-stream time.
+  Duration session_time = 2;
+
+  // Raw confidence from the underlying engine (0.0..1.0).
+  float confidence = 3;
+
+  // Raw RMS volume from the audio frame (0.0..1.0).
+  float volume = 4;
+
+  // Current state-machine state at the END of this frame.
+  VadState state = 5;
+
+  // Packet IDs whose audio bytes (after resampling) contributed to this
+  // frame, in order of contribution. Usually a single ID; multiple at
+  // packet boundaries or when the client sent very small packets.
+  repeated uint64 source_packet_ids = 6;
+}
+
+/*
+ * State-machine transition event.
+ *
+ * Emitted whenever the VAD state changes. Always emitted regardless of
+ * `enable_vad_frame_telemetry`.
+ */
+message VadStateEvent {
+  // Time elapsed since the input pipeline started.
+  Duration session_time = 1;
+
+  // The state the machine was in before the transition.
+  VadState from_state = 2;
+
+  // The state the machine is in after the transition.
+  VadState to_state = 3;
+
+  // The packet_id being processed when the transition triggered.
+  uint64 packet_id = 4;
+}
+
+/*
+ * Audio data wrapper.
+ */
+message AudioData {
+  // Raw audio data bytes. Must conform to the AudioLineConfiguration.
+  bytes data = 1;
+}
+
+/*
+ * Audio input from the client.
+ */
+message UserInput {
+  // Packet identifier for tracking purposes.
+  //
+  // The service uses this value to refer to specific packets in VAD events.
+  // The client is free to choose any numbering scheme.
+  uint64 packet_id = 1;
+
+  // Field 2 reserved (inference trigger mode — not used in VAD-only).
+  reserved 2;
+
+  oneof input {
+    // Audio data input.
+    AudioData audio_data = 3;
+
+    // Field 4 reserved (text input — not used in VAD-only).
+  }
+
+  reserved 4;
+}
+
+/*
+ * First message sent to initialize a session.
+ *
+ * Must always be the first message sent from the client to the service.
+ */
+message InitializeSessionRequest {
+  // Configuration for the input audio line.
+  AudioLineConfiguration input_audio_line = 1;
+
+  // Configuration for the output audio line.
+  AudioLineConfiguration output_audio_line = 2;
+
+  // VAD configuration for speech detection.
+  VadConfiguration vad_configuration = 3;
+
+  // Fields 4-6 reserved (inference, TTS, playback — not used in VAD-only).
+  reserved 4, 5, 6;
+
+  // When true, the server emits per-frame VadAnalysisFrame messages
+  // (~50 Hz). Off by default for bandwidth reasons. State transitions
+  // (VadStateEvent) are emitted unconditionally regardless of this flag.
+  //
+  // Experimental — may change without a major version bump.
+  bool enable_vad_frame_telemetry = 7;
+}
+
+/*
+ * Request to reconfigure an ongoing session.
+ *
+ * Note that corvidae does not guarantee seamless reconfiguration —
+ * there may be glitches or dropped audio.
+ */
+message ReconfigureSessionRequest {
+  optional AudioLineConfiguration input_audio_line = 1;
+
+  // Field 2 reserved (inference configuration — not used in VAD-only).
+  reserved 2;
+}
+
+/*
+ * Error category for client-facing error notifications.
+ */
+enum SessionErrorCategory {
+  ERROR_UNKNOWN = 0;
+  ERROR_SESSION = 1;
+  ERROR_CONFIGURATION = 2;
+  ERROR_PROTOCOL = 3;
+  ERROR_INFERENCE = 4;
+  ERROR_AUDIO = 5;
+  ERROR_TTS = 6;
+  ERROR_INTERNAL = 7;
+}
+
+/*
+ * Error notification sent to the client.
+ *
+ * Sent before the connection is closed to provide debugging context.
+ */
+message SessionErrorNotification {
+  // The error category for programmatic handling.
+  SessionErrorCategory category = 1;
+
+  // Human-readable message suitable for logging or display.
+  string message = 2;
+
+  // Optional trace ID for correlating with server logs.
+  optional string trace_id = 3;
+}
+
+/*
+ * Notification sent when the session is fully initialized
+ * and ready to accept user input.
+ */
+message SessionReady {}
+
+/*
+ * Message sent from the client to the service.
+ */
+message ServiceBoundMessage {
+  oneof payload {
+    InitializeSessionRequest initialize_session_request = 1;
+    ReconfigureSessionRequest reconfigure_session_request = 2;
+    UserInput user_input = 3;
+
+    // Fields 4-10 reserved (tools, inference, chat, playback, speech, queries).
+  }
+
+  reserved 4, 5, 6, 7, 8, 9, 10;
+}
+
+/*
+ * Message sent from the service to the client.
+ */
+message ClientBoundMessage {
+  oneof payload {
+    SessionErrorNotification error = 8;
+    SessionReady session_ready = 11;
+    VadAnalysisFrame vad_analysis_frame = 12;
+    VadStateEvent vad_state_event = 13;
+
+    // Fields 1-7, 9-10 reserved (inference, TTS, playback, chat, transcription, queries).
+  }
+
+  reserved 1, 2, 3, 4, 5, 6, 7, 9, 10;
+}
