@@ -64,6 +64,12 @@
             ]
           },
           {
+            "group": "VAD",
+            "pages": [
+              "api-reference/vad"
+            ]
+          },
+          {
             "group": "Call Event Hooks",
             "pages": [
               "api-reference/call-event-hooks"
