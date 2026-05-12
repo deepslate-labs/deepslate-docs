@@ -237,14 +237,45 @@ Voice Activity Detection settings.
 
 ### VadState
 
-The VAD pipeline is a debounced state machine. Raw confidence and volume signals are smoothed by `start_duration` and `stop_duration` before a transition is emitted.
+The VAD pipeline is a debounced state machine. Rather than emitting a transition on every raw frame, the engine applies `start_duration` and `stop_duration` windows to smooth out transient noise and brief pauses before committing to a new state. A frame is considered **above threshold** when both `confidence ≥ confidence_threshold` AND `volume ≥ min_volume`; both conditions must hold simultaneously.
+
+```mermaid
+stateDiagram-v2
+    [*] --> SILENCE
+
+    SILENCE --> SPEECH_STARTING : frame above threshold
+    SPEECH_STARTING --> SPEECH : start_duration elapsed
+    SPEECH_STARTING --> SILENCE : frame below threshold
+
+    SPEECH --> SPEECH_ENDING : frame below threshold
+    SPEECH_ENDING --> SILENCE : stop_duration elapsed
+    SPEECH_ENDING --> SPEECH : frame above threshold
+
+    note right of SPEECH_STARTING
+        "above threshold" means
+        confidence ≥ confidence_threshold
+        AND volume ≥ min_volume
+    end note
+```
+
+**`SILENCE`** — The initial state. The engine is processing audio but no speech onset has been detected. Frames are evaluated every ~20 ms; the machine stays here until it sees a frame that clears both `confidence_threshold` and `min_volume`.
+
+**`SPEECH_STARTING`** — A potential speech onset has been detected: at least one frame exceeded both thresholds. The machine enters this state and starts the `start_duration` debounce timer. This window guards against brief noise bursts or transient spikes being misclassified as speech. Two outcomes are possible:
+- If frames remain above threshold continuously for the full `start_duration`, the machine advances to `SPEECH`.
+- If any frame drops below threshold before `start_duration` elapses, the machine returns to `SILENCE` immediately — the onset is treated as a false positive.
+
+**`SPEECH`** — Active speech is confirmed. The machine entered here after sustained above-threshold audio lasting at least `start_duration`. Audio is considered live speech until the engine sees a frame that drops below threshold, at which point the machine moves to `SPEECH_ENDING`.
+
+**`SPEECH_ENDING`** — A potential speech offset has been detected: a frame dropped below threshold while in `SPEECH`. The `stop_duration` debounce timer starts. This window prevents brief pauses — breaths, hesitations, word gaps — from prematurely ending a speech segment. Two outcomes are possible:
+- If any frame returns above threshold before `stop_duration` elapses, the machine snaps back to `SPEECH`, continuing the same segment.
+- If frames remain below threshold for the full `stop_duration`, the machine transitions to `SILENCE` and the speech segment is considered complete.
 
 | Value | Description |
 |-------|-------------|
 | `SILENCE` | No speech detected |
-| `SPEECH_STARTING` | Speech confidence above threshold but `start_duration` not yet elapsed |
+| `SPEECH_STARTING` | Above-threshold frame seen; waiting for `start_duration` to confirm onset |
 | `SPEECH` | Active speech confirmed |
-| `SPEECH_ENDING` | Speech dropped below threshold but `stop_duration` not yet elapsed |
+| `SPEECH_ENDING` | Below-threshold frame seen; waiting for `stop_duration` to confirm offset |
 
 ### Duration
 
