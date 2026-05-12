@@ -14,10 +14,6 @@ Messages are binary-encoded protobuf. JSON examples below are shown for readabil
 This endpoint runs pure VAD — it does **not** perform LLM inference, TTS synthesis, or transcription. Use it when you only need speech activity events and want to drive your own processing pipeline downstream. For the full conversational AI pipeline, see the [Opal WebSocket Protocol](/api-reference/realtime).
 </Info>
 
-<Note>
-Sessions on this endpoint are billed under the **Opal VAD V1** pricing tier (per minute of session time). The `API_REALTIME` feature must be enabled for your organization to connect.
-</Note>
-
 ## Connection
 
 ```
