@@ -14,7 +14,7 @@ https://app.deepslate.eu
 All API endpoints require Bearer token authentication:
 
 ```bash
-curl -X GET "https://app.deepslate.eu/api/v1/vendors" \
+curl -X GET "https://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants" \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
@@ -63,7 +63,6 @@ All resource endpoints use UUID identifiers:
 - `organizationId` - Organization identifier
 - `assistantId` - Assistant identifier
 - `agentId` - Agent identifier
-- `planId` - Plan identifier
 
 ## Error responses
 
