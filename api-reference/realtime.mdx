@@ -218,11 +218,13 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `await_pending` | bool | When `true`, waits for all in-flight async operations (e.g. transcriptions) to complete before responding |
+    | `exclude_audio` | bool | When `true`, omits audio data from the response. Useful when you only need transcripts and want to avoid transferring large audio blobs. Defaults to `false`. |
 
     ```json
     {
       "exportChatHistoryRequest": {
-        "awaitPending": true
+        "awaitPending": true,
+        "excludeAudio": true
       }
     }
     ```

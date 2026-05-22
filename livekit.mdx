@@ -325,6 +325,7 @@ def on_history(messages):
 # Request the export
 await session.llm.session().export_chat_history(
     await_pending=False,  # Set True to wait for any in-flight operations first
+    exclude_audio=False,  # Set True to omit audio blobs (transcripts only)
 )
 ```
 
