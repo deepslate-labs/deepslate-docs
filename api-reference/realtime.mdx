@@ -293,7 +293,11 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
 
 <AccordionGroup>
   <Accordion title="ModelTextFragment" icon="text" defaultOpen>
-    Streamed text output as tokens arrive. Used when TTS is not configured.
+    Streamed text output as tokens arrive.
+
+    <Warning>
+    `ModelTextFragment` is **only sent in text-only mode** — when no `tts_configuration` is present in `InitializeSessionRequest`. If TTS is configured, the server sends `ModelAudioChunk` messages instead and `ModelTextFragment` is never emitted.
+    </Warning>
 
     | Field | Type | Description |
     |-------|------|-------------|
@@ -314,7 +318,14 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `audio` | AudioData | Audio bytes matching output_audio_line config |
-    | `transcript` | string | Optional text that was spoken (alignment data from TTS provider) |
+    | `transcript` | string | Optionally populated transcript text accompanying this audio chunk. See note below. |
+
+    <Note>
+    The `transcript` field is present on every `ModelAudioChunk` but is **only optionally populated** — do not rely on it being set.
+
+    - **Deepslate hosted TTS** does not populate `transcript`.
+    - **Third-party TTS providers** (e.g., ElevenLabs) may optionally include it to supply word-level alignment data alongside the audio.
+    </Note>
 
     ```json
     {
