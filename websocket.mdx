@@ -144,7 +144,7 @@ The server sends `ClientBoundMessage` with one of several payload types.
 **Text-only vs. TTS mode**
 
 - **`ModelTextFragment`** — sent only when **no TTS provider is configured**. Contains streamed text tokens as the model generates them.
-- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains synthesized audio. The `transcript` field is optionally populated: Deepslate's hosted TTS leaves it empty, while third-party providers such as ElevenLabs may include it for alignment data.
+- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains synthesized audio. The `transcript` field is optional and may be omitted entirely: Deepslate's hosted TTS does not include it; third-party providers (e.g., ElevenLabs) may include it for alignment data.
 </Info>
 
 ```javascript
@@ -164,8 +164,8 @@ ws.on('message', (data) => {
   if (message.modelAudioChunk) {
     // TTS mode: received when a TTS provider is configured
     const audioData = message.modelAudioChunk.audio.data;
-    // transcript is optionally populated — hosted TTS leaves it empty;
-    // third-party providers may include it for alignment data
+    // transcript is optional and may be absent — hosted TTS omits it;
+    // third-party providers (e.g., ElevenLabs) may include it for alignment data
     const transcript = message.modelAudioChunk.transcript;
 
     // Queue audio for playback
@@ -547,7 +547,7 @@ async function main() {
     }
 
     if (msg.modelAudioChunk) {
-      // Only received in TTS mode; transcript may be empty depending on provider
+      // Only received in TTS mode; transcript is optional and may be absent depending on provider
       playbackQueue.push(Buffer.from(msg.modelAudioChunk.audio.data));
     }
 

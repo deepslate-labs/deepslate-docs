@@ -318,13 +318,13 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `audio` | AudioData | Audio bytes matching output_audio_line config |
-    | `transcript` | string | Optionally populated transcript text accompanying this audio chunk. See note below. |
+    | `transcript` | string? | Optional. When present, may be empty or contain the spoken text. See note below. |
 
     <Note>
-    The `transcript` field is present on every `ModelAudioChunk` but is **only optionally populated** — do not rely on it being set.
+    The `transcript` field is **optional** — it may be absent from a given chunk entirely.
 
     - **Deepslate hosted TTS** does not populate `transcript`.
-    - **Third-party TTS providers** (e.g., ElevenLabs) may optionally include it to supply word-level alignment data alongside the audio.
+    - **Third-party TTS providers** (e.g., ElevenLabs) may populate it to supply word-level alignment data alongside the audio.
     </Note>
 
     ```json
