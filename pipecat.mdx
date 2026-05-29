@@ -412,7 +412,7 @@ In addition to standard Pipecat frames, `deepslate-pipecat` exposes the followin
 
 | Frame | Description |
 |-------|-------------|
-| `DeepslateExportChatHistoryFrame` | Request a full chat history export. `await_pending: bool` - wait for in-flight ops before exporting. `exclude_audio: bool` - omit audio blobs from the result (transcripts only). |
+| `DeepslateExportChatHistoryFrame` | Request a full chat history export. Set `await_pending: bool` to wait for in-flight ops before exporting. Set `exclude_audio: bool` to omit audio blobs from the result (transcripts only). |
 | `DeepslateDirectSpeechFrame` | Speak text directly via TTS, bypassing the LLM. `text: str`, `include_in_history: bool`. |
 | `DeepslateConversationQueryFrame` | One-shot side-channel inference. `prompt: str \| None`, `instructions: str \| None`. |
 
