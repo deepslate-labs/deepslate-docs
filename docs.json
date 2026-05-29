@@ -116,16 +116,6 @@
             ]
           },
           {
-            "group": "Vendors",
-            "pages": [
-              "api-reference/vendors/list",
-              "api-reference/vendors/create",
-              "api-reference/vendors/get",
-              "api-reference/vendors/update",
-              "api-reference/vendors/delete"
-            ]
-          },
-          {
             "group": "SIP Credentials",
             "pages": [
               "api-reference/sip-credentials/list",

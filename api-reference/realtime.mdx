@@ -557,12 +557,15 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
     ```
   </Tab>
   <Tab title="Hosted">
-    Uses a voice model hosted on the Deepslate server. The model is loaded globally at startup and shared across all sessions.
+    Uses Deepslate-hosted TTS. You can reference a hosted voice by ID, or provide an inline voice clone from reference audio and exact reference text for this realtime session.
 
     | Field | Type | Description |
     |-------|------|-------------|
-    | `voice_ref` | HostedVoiceRef | Reference to a hosted voice by ID |
+    | `voice_ref` | HostedVoiceRef | Reference to a hosted voice by ID. Mutually exclusive with `voice_clone_v1`. |
+    | `voice_clone_v1` | HostedVoiceCloneV1 | Inline custom voice clone using reference audio plus exact transcript. Mutually exclusive with `voice_ref`. |
     | `mode` | HostedTtsMode | Quality/latency trade-off mode (default: `HIGH_QUALITY`) |
+
+    **Hosted voice ID**
 
     ```json
     {
@@ -576,6 +579,31 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
       }
     }
     ```
+
+    **Reference audio + text**
+
+    ```json
+    {
+      "ttsConfiguration": {
+        "hosted": {
+          "voiceCloneV1": {
+            "audioData": "<base64-encoded-reference-audio>",
+            "audioFormat": {
+              "sampleRate": 16000,
+              "channelCount": 1,
+              "sampleFormat": "SIGNED_16_BIT"
+            },
+            "refText": "This is the exact transcript of the reference audio, including disfluencies."
+          },
+          "mode": "HIGH_QUALITY"
+        }
+      }
+    }
+    ```
+
+    <Note>
+    Use 20 to 25 seconds of clean speech for `voice_clone_v1.audio_data`. In JSON, protobuf `bytes` fields are base64-encoded; binary protobuf clients send the raw audio bytes.
+    </Note>
   </Tab>
 </Tabs>
 
@@ -600,6 +628,24 @@ Controls which ElevenLabs regional endpoint is used. See [ElevenLabs data reside
 | `US` | United States (default) — accessed via https://elevenlabs.io/ |
 | `EU` | European Union — requires ElevenLabs enterprise access |
 | `INDIA` | India — requires ElevenLabs enterprise access |
+
+### HostedVoiceRef
+
+Reference a Deepslate-hosted voice that is already available on the server.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `voice_id` | string | ID of the hosted voice to synthesize with |
+
+### HostedVoiceCloneV1
+
+Provide an inline custom voice clone for hosted TTS using reference audio and its exact transcript.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `audio_data` | bytes | Raw reference audio bytes. Use 20 to 25 seconds of clean speech. |
+| `audio_format` | AudioLineConfiguration | Format of `audio_data`, including sample rate, channel count, and sample format |
+| `ref_text` | string | Exact transcript of the reference audio, including disfluencies and false starts |
 
 ### HostedTtsMode
 
