@@ -296,7 +296,7 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     Streamed text output as tokens arrive.
 
     <Warning>
-    `ModelTextFragment` is **only sent in text-only mode** — when no `tts_configuration` is present in `InitializeSessionRequest`. If TTS is configured, the server sends `ModelAudioChunk` messages instead and `ModelTextFragment` is never emitted.
+    `ModelTextFragment` is **only sent in text-only mode** - when no `tts_configuration` is present in `InitializeSessionRequest`. If TTS is configured, the server sends `ModelAudioChunk` messages instead and `ModelTextFragment` is never emitted.
     </Warning>
 
     | Field | Type | Description |
