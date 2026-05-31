@@ -325,9 +325,9 @@ Without playback reporting, the server falls back to elapsed-time estimation for
 Use `ExportChatHistoryRequest` to retrieve the full conversation history at any point. Set `awaitPending: true` to wait for any in-flight transcriptions to finish before the history is returned.
 
 ```javascript
-function exportHistory(awaitPending = false) {
+function exportHistory(awaitPending = false, excludeAudio = false) {
   const message = ServiceBoundMessage.create({
-    exportChatHistoryRequest: { awaitPending }
+    exportChatHistoryRequest: { awaitPending, excludeAudio }
   });
   ws.send(ServiceBoundMessage.encode(message).finish());
 }
