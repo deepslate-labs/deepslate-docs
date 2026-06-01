@@ -40,6 +40,13 @@
             ]
           },
           {
+            "group": "Voice Cloning",
+            "icon": "clone",
+            "pages": [
+              "voice-cloning"
+            ]
+          },
+          {
             "group": "Prompt Engineering",
             "icon": "wand-magic-sparkles",
             "pages": [

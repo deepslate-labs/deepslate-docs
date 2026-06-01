@@ -1,0 +1,136 @@
+---
+title: 'Voice Cloning'
+description: 'How to record reference audio and write the reference transcript for a high-quality Deepslate custom voice'
+icon: 'clone'
+---
+
+A custom voice is built from two inputs: a short **reference recording** and its **reference transcript**. The model reproduces whatever it hears in the recording — timbre, pacing, accent, and any background noise, reverb, or filler words — so the quality of these two inputs is what determines the quality of your voice.
+
+This guide covers how to capture a great reference recording and how to write the transcript that accompanies it. Configuring and using a voice once you have these files is documented separately.
+
+<Note>
+Everything the model hears, it imitates. A clean, consistent sample produces a clean, consistent voice; a noisy or inconsistent one bakes those flaws into every response.
+</Note>
+
+## How long should the reference be?
+
+Shorter than you might expect. A usable clone needs a **minimum of about 3 seconds** of clean speech, and quality improves only up to roughly **10–15 seconds**. Past that, extra length stops helping — and can start to hurt.
+
+| Reference length | Result |
+|------------------|--------|
+| Under 3 s | Too short — unstable, unreliable clone |
+| ~3 s | Minimum viable |
+| **10–15 s** | **Recommended — the quality sweet spot** |
+| 15–20 s | Diminishing returns; no meaningful gain |
+| Over 20 s | No quality benefit; rising risk of instability and artifacts |
+
+<Warning>
+**More audio is not better here.** Recording 20–25 seconds or longer is a common mistake. Cloning quality scales with length only up to about 15 seconds, then plateaus and eventually degrades, and over-long references make synthesis less stable. Aim for **10–15 seconds** and treat ~20 seconds as a hard upper bound. Clean and consistent beats long.
+</Warning>
+
+## Audio format and quality targets
+
+Capture the cleanest possible signal. Higher quality is always fine — the audio can be resampled — but flaws cannot be removed later.
+
+| Property | Target |
+|----------|--------|
+| Channels | Mono |
+| Sample rate | 24 kHz or higher (44.1 / 48 kHz is ideal) |
+| Bit depth | 16-bit PCM or higher |
+| File format | Lossless **WAV** preferred; avoid heavily compressed MP3 |
+| Peak level | −3 dB to −6 dB, with **no clipping** |
+| Background noise | As low as possible — record in a quiet, treated room |
+| Speakers | Exactly one |
+
+## Recording best practices
+
+<Steps>
+  <Step title="Record in a quiet, treated space">
+    Soft furnishings and few hard surfaces reduce echo. Turn off fans, air conditioning, and notifications. Room tone and reverb get cloned along with your voice.
+  </Step>
+  <Step title="Use a good microphone, consistently positioned">
+    A dedicated microphone with a pop filter, about 20 cm (7–8 inches) from your mouth. Keep the same distance and angle for the whole recording.
+  </Step>
+  <Step title="Capture dry, unprocessed audio">
+    No EQ, compression, reverb, or noise reduction. The model performs best on natural, raw speech; processing introduces artifacts it will imitate.
+  </Step>
+  <Step title="Use one speaker with a consistent delivery">
+    Hold a steady volume, pace, pitch, and tone throughout. Choose the register you want callers to hear and stay in it — don't drift between styles.
+  </Step>
+  <Step title="Speak naturally and in character">
+    Match the language, accent, and energy of your intended use. The clone mirrors the sample, not your intent.
+  </Step>
+  <Step title="Review before you submit">
+    Listen back for clipping, background noise, mouth clicks, breaths, and long pauses. Re-record rather than edit whenever you can.
+  </Step>
+</Steps>
+
+## Good vs. bad reference audio
+
+Because the model imitates everything in the sample, treat this as your acceptance checklist.
+
+| ✅ Do | ❌ Avoid |
+|------|---------|
+| A single speaker, alone | Multiple or overlapping speakers |
+| A quiet, dry room | Background noise, music, TV, or traffic |
+| Close, consistent mic placement | Reverb, echo, or a "roomy" sound |
+| Steady volume and pace | Volume that jumps, drifts, or trails off |
+| One consistent tone and accent | Switching tone, accent, or energy mid-clip |
+| Natural, continuous speech | Long pauses or gaps (they get reproduced) |
+| Clean peaks (−3 dB to −6 dB) | Clipping or distortion |
+| Lossless, unprocessed WAV | Heavy compression, EQ, or de-noising |
+| 10–15 seconds of speech | Filler words ("um", "ah") unless you want them cloned |
+
+<Tip>
+A quick test: if a stranger listening to your clip would notice anything other than one person speaking clearly — a hum, an echo, a second voice, a cough — re-record. The model will notice it too, and reproduce it.
+</Tip>
+
+## Writing the reference transcript
+
+The recording is paired with a **transcript**: the exact words spoken in the clip. An accurate transcript materially improves cloning quality; an inaccurate one degrades it.
+
+- **Transcribe verbatim.** Write exactly what is said, word for word. If the recording contains a filler word, repetition, or stumble, include it; if it doesn't, don't add one. (Better still: record clean speech without fillers, so your transcript is clean too.)
+- **Write words the way they are spoken.** Spell out numbers, symbols, dates, and abbreviations as the speaker actually voices them — this mirrors how you write content for the assistant itself (see [System Prompt](/prompt-engineering/system-prompt)).
+- **Match the language.** The transcript must be in the same language as the audio.
+- **Punctuate for delivery.** Use punctuation that reflects the natural pauses and intonation in the recording.
+- **Keep it one coherent passage.** A few natural sentences that flow together, not a list of disconnected fragments.
+
+### Examples
+
+The transcript must match the spoken words exactly — including how numbers are pronounced.
+
+**Spoken audio:** *"Your total comes to forty-nine euros and ninety cents."*
+
+| | Transcript |
+|---|-----------|
+| ✅ Good | `Your total comes to forty-nine euros and ninety cents.` |
+| ❌ Bad | `Your total comes to €49.90.` |
+
+The bad version doesn't match what was said. `€49.90` is a written form the speaker never voiced; the transcript has to reflect the spoken words.
+
+**Spoken audio:** *"Um, sure — let me check that for you."*
+
+| | Transcript |
+|---|-----------|
+| ✅ Good | `Um, sure — let me check that for you.` |
+| ❌ Bad | `Sure, let me check that for you.` |
+
+The "um" is in the audio, so it belongs in the transcript. (Best practice: re-record without the "um" — then both the audio and the transcript are clean.)
+
+## Consent and rights
+
+<Warning>
+Only clone a voice you have explicit, documented permission to use. In many jurisdictions a person's voice is protected as biometric and/or personality-rights data. Obtain and retain written consent from the voice owner covering the intended use — for example, automated inbound or outbound calling — and treat reference recordings as sensitive personal data.
+</Warning>
+
+## Pre-submission checklist
+
+<Check>
+- Reference is **10–15 seconds** of clean, continuous speech (3 seconds absolute minimum, ~20 seconds maximum).
+- One speaker only, with no background noise, music, or reverb.
+- Consistent volume, pace, pitch, and tone throughout.
+- Mono, 24 kHz or higher, 16-bit PCM, lossless WAV, no clipping.
+- Audio is dry — no EQ, compression, or noise reduction.
+- Transcript matches the audio word for word, with numbers and symbols written as spoken.
+- You have documented consent to clone this voice.
+</Check>
