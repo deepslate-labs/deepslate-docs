@@ -138,7 +138,14 @@ Audio format must exactly match your session configuration. For 16-bit signed PC
 
 ## Handle Responses
 
-The server sends `ClientBoundMessage` with one of several payload types:
+The server sends `ClientBoundMessage` with one of several payload types.
+
+<Info>
+**Text-only vs. TTS mode**
+
+- **`ModelTextFragment`** — sent only when **no TTS provider is configured**. Contains streamed text tokens as the model generates them.
+- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains synthesized audio. The `transcript` field is optional and may be omitted entirely: Deepslate's hosted TTS does not include it; third-party providers (e.g., ElevenLabs) may include it for alignment data.
+</Info>
 
 ```javascript
 ws.on('message', (data) => {
@@ -150,13 +157,15 @@ ws.on('message', (data) => {
   }
 
   if (message.modelTextFragment) {
-    // Streamed text tokens (when TTS is not configured)
+    // Text-only mode: only received when no TTS provider is configured
     process.stdout.write(message.modelTextFragment.text);
   }
 
   if (message.modelAudioChunk) {
-    // TTS audio output
+    // TTS mode: received when a TTS provider is configured
     const audioData = message.modelAudioChunk.audio.data;
+    // transcript is optional and may be absent — hosted TTS omits it;
+    // third-party providers (e.g., ElevenLabs) may include it for alignment data
     const transcript = message.modelAudioChunk.transcript;
 
     // Queue audio for playback
@@ -533,11 +542,12 @@ async function main() {
     }
 
     if (msg.modelTextFragment) {
+      // Only received in text-only mode (no TTS configured)
       process.stdout.write(msg.modelTextFragment.text);
     }
 
     if (msg.modelAudioChunk) {
-      // Queue audio for playback
+      // Only received in TTS mode; transcript is optional and may be absent depending on provider
       playbackQueue.push(Buffer.from(msg.modelAudioChunk.audio.data));
     }
 
