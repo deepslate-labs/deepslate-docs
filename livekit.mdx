@@ -50,8 +50,8 @@ Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is fo
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, room_io
 
-import deepslate.livekit.realtime
-from deepslate.livekit.realtime import ElevenLabsTtsConfig
+import deepslate.livekit
+from deepslate.livekit import ElevenLabsTtsConfig
 
 class Assistant(Agent):
     def __init__(self) -> None:
@@ -62,7 +62,7 @@ server = AgentServer()
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
-        llm=deepslate.livekit.realtime.RealtimeModel(
+        llm=deepslate.livekit.RealtimeModel(
             tts_config=ElevenLabsTtsConfig.from_env()
         ),
     )
@@ -132,15 +132,15 @@ if __name__ == "__main__":
     | `LOW_LATENCY` | Low latency generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
 
     ```python
-    from deepslate.livekit.realtime import HostedTtsConfig, HostedTtsMode
+    from deepslate.livekit import HostedTtsConfig, HostedTtsMode
 
     # Default — high quality
-    llm = deepslate.livekit.realtime.RealtimeModel(
+    llm = deepslate.livekit.RealtimeModel(
         tts_config=HostedTtsConfig(voice_id="c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f")
     )
 
     # Explicit low latency mode
-    llm = deepslate.livekit.realtime.RealtimeModel(
+    llm = deepslate.livekit.RealtimeModel(
         tts_config=HostedTtsConfig(
             voice_id="c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f",
             mode=HostedTtsMode.LOW_LATENCY,
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     | `speed` | `float \| None` | Speaking speed multiplier |
 
     ```python
-    from deepslate.livekit.realtime import (
+    from deepslate.livekit import (
         ElevenLabsTtsConfig,
         ElevenLabsVoiceSettingsConfig,
         ElevenLabsLocation,
@@ -235,8 +235,8 @@ if __name__ == "__main__":
 import asyncio
 from livekit import agents
 from livekit.agents import AgentSession, Agent
-import deepslate.livekit.realtime
-from deepslate.livekit.realtime import ElevenLabsTtsConfig
+import deepslate.livekit
+from deepslate.livekit import ElevenLabsTtsConfig
 
 class Assistant(Agent):
     def __init__(self) -> None:
@@ -244,7 +244,7 @@ class Assistant(Agent):
 
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
-    model = deepslate.livekit.realtime.RealtimeModel(
+    model = deepslate.livekit.RealtimeModel(
         tts_config=ElevenLabsTtsConfig.from_env()
     )
     session = AgentSession(llm=model)
