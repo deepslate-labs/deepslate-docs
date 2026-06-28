@@ -36,7 +36,7 @@ The monorepo publishes framework plugins for two languages. The **LiveKit** plug
   <Card title="deepslate-livekit (Python)" icon="tower-broadcast" href="/livekit">
     `RealtimeModel` plugin for [LiveKit Agents](https://github.com/livekit/agents). Drop into any Python LiveKit Agents project with a one-line model swap.
   </Card>
-  <Card title="@deepslate/livekit (Node.js)" icon="tower-broadcast" href="/livekit-node">
+  <Card title="@deepslate-labs/livekit (Node.js)" icon="tower-broadcast" href="/livekit-node">
     `RealtimeModel` plugin for the [LiveKit Agents](https://github.com/livekit/agents) Node framework. Same configuration model, written against the TypeScript API.
   </Card>
   <Card title="deepslate-pipecat (Python)" icon="pipe-valve" href="/pipecat">
@@ -49,7 +49,7 @@ The monorepo publishes framework plugins for two languages. The **LiveKit** plug
 pip install deepslate-livekit
 ```
 ```bash LiveKit (Node.js)
-npm install @deepslate/livekit
+npm install @deepslate-labs/livekit
 ```
 ```bash Pipecat (Python)
 pip install deepslate-pipecat
@@ -76,7 +76,7 @@ Never expose these credentials to clients. All SDK packages are designed for **s
 
 ## Core packages
 
-Each language has a shared foundation that its plugins are built on — `deepslate-core` (Python) and `@deepslate/core` (Node.js). It handles WebSocket connectivity, protobuf framing, session lifecycle, and exponential-backoff reconnection.
+Each language has a shared foundation that its plugins are built on — `deepslate-core` (Python) and `@deepslate-labs/core` (Node.js). It handles WebSocket connectivity, protobuf framing, session lifecycle, and exponential-backoff reconnection.
 
 <Note>
 You **don't need to install the core package directly** when using the LiveKit or Pipecat plugins — they include it as a dependency. Install it only if you're building a **custom integration** outside of these frameworks.
@@ -87,7 +87,7 @@ You **don't need to install the core package directly** when using the LiveKit o
 pip install deepslate-core
 ```
 ```bash Node.js
-npm install @deepslate/core
+npm install @deepslate-labs/core
 ```
 </CodeGroup>
 
@@ -139,8 +139,8 @@ deepslate-sdks/
 │   └── pyproject.toml # uv workspace root
 └── node/
     ├── packages/
-    │   ├── core/      # @deepslate/core — shared WebSocket client and session logic
-    │   └── livekit/   # @deepslate/livekit — LiveKit Agents plugin
+    │   ├── core/      # @deepslate-labs/core — shared WebSocket client and session logic
+    │   └── livekit/   # @deepslate-labs/livekit — LiveKit Agents plugin
     └── pnpm-workspace.yaml
 ```
 

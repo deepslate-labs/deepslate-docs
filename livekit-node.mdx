@@ -4,7 +4,7 @@ description: 'Integrate Deepslate voice AI with the LiveKit Agents Node framewor
 icon: 'microphone-lines'
 ---
 
-The `@deepslate/livekit` package provides a `RealtimeModel` implementation for the [LiveKit Agents](https://github.com/livekit/agents) **Node.js / TypeScript** framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
+The `@deepslate-labs/livekit` package provides a `RealtimeModel` implementation for the [LiveKit Agents](https://github.com/livekit/agents) **Node.js / TypeScript** framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
 
 <Note>
 Using the **Python** LiveKit framework instead? See the [LiveKit Plugin (Python)](/livekit) page for the `deepslate-livekit` package. The two plugins share the same configuration model and feature set; this page is written against the Node framework's API (the realtime classes live under the `llm` namespace, and audio frames come from `@livekit/rtc-node`).
@@ -24,7 +24,7 @@ This plugin lives in the [deepslate-sdks monorepo](https://github.com/deepslate-
 ## Installation
 
 ```bash
-npm install @deepslate/livekit
+npm install @deepslate-labs/livekit
 ```
 
 The plugin declares the LiveKit framework packages as **peer dependencies** — install them alongside it:
@@ -33,7 +33,7 @@ The plugin declares the LiveKit framework packages as **peer dependencies** — 
 npm install @livekit/agents @livekit/rtc-node
 ```
 
-`@deepslate/core` is pulled in automatically.
+`@deepslate-labs/core` is pulled in automatically.
 
 ## Environment Variables
 
@@ -57,7 +57,7 @@ Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is fo
 ```ts
 import { fileURLToPath } from "node:url";
 import { type JobContext, ServerOptions, cli, defineAgent, voice } from "@livekit/agents";
-import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate/livekit";
+import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
@@ -113,7 +113,7 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     | `backbufferDurationMs` | `1000` | Audio buffered before the detection window (ms) |
 
     ```ts
-    import { RealtimeModel } from "@deepslate/livekit";
+    import { RealtimeModel } from "@deepslate-labs/livekit";
 
     const model = new RealtimeModel({
       vad: {
@@ -149,7 +149,7 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     | `LOW_LATENCY` | Low latency generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
 
     ```ts
-    import { RealtimeModel, HostedTtsMode } from "@deepslate/livekit";
+    import { RealtimeModel, HostedTtsMode } from "@deepslate-labs/livekit";
 
     // Default — high quality
     const model = new RealtimeModel({
@@ -195,7 +195,7 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     | `speed` | `number` | Speaking speed multiplier |
 
     ```ts
-    import { RealtimeModel, ElevenLabsLocation, elevenLabsConfigFromEnv } from "@deepslate/livekit";
+    import { RealtimeModel, ElevenLabsLocation, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
 
     // Load from environment variables
     const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
@@ -278,7 +278,7 @@ const agent = new voice.Agent({
 For Deepslate-specific capabilities (welcome messages, direct speech, conversation queries, history export, live configuration), obtain the underlying `DeepslateRealtimeSession` from the model with `model.session()`:
 
 ```ts
-import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate/livekit";
+import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
 
 const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
 const session = model.session();
