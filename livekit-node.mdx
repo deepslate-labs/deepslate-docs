@@ -4,7 +4,7 @@ description: 'Integrate Deepslate voice AI with the LiveKit Agents Node framewor
 icon: 'microphone-lines'
 ---
 
-The `@deepslate-labs/livekit` package provides a `RealtimeModel` implementation for the [LiveKit Agents](https://github.com/livekit/agents) **Node.js / TypeScript** framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
+Use the `@deepslate-labs/livekit` package to add a `RealtimeModel` implementation to the [LiveKit Agents](https://github.com/livekit/agents) **Node.js / TypeScript** framework, so you can integrate with the Deepslate unified voice AI infrastructure.
 
 <Note>
 Using the **Python** LiveKit framework instead? See the [LiveKit Plugin (Python)](/livekit) page for the `deepslate-livekit` package. The two plugins share the same configuration model and feature set; this page is written against the Node framework's API (the realtime classes live under the `llm` namespace, and audio frames come from `@livekit/rtc-node`).
@@ -33,7 +33,7 @@ The plugin declares the LiveKit framework packages as **peer dependencies** — 
 npm install @livekit/agents @livekit/rtc-node
 ```
 
-`@deepslate-labs/core` is pulled in automatically.
+You don't need to install `@deepslate-labs/core` separately. It's pulled in automatically.
 
 ## Environment Variables
 
