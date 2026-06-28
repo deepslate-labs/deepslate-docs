@@ -1,10 +1,10 @@
 ---
 title: 'Deepslate SDKs'
-description: 'Official Python SDKs for integrating Deepslate voice AI into your agent framework'
+description: 'Official Python and Node.js SDKs for integrating Deepslate voice AI into your agent framework'
 icon: 'cube'
 ---
 
-Deepslate provides **official Python SDKs** for connecting your voice AI application to the Deepslate Realtime API. All SDKs live in a single [open-source monorepo](https://github.com/deepslate-labs/deepslate-sdks) and share a common core, giving you a consistent configuration model and feature set regardless of which agent framework you use.
+Deepslate provides **official Python and Node.js/TypeScript SDKs** for connecting your voice AI application to the Deepslate Realtime API. All SDKs live in a single [open-source monorepo](https://github.com/deepslate-labs/deepslate-sdks) and share a common core within each language, giving you a consistent configuration model and feature set regardless of which agent framework or language you use.
 
 ## What Deepslate provides
 
@@ -30,27 +30,33 @@ Every SDK gives your application access to Deepslate's unified voice AI stack ov
 
 ## Packages
 
-The monorepo publishes three packages. Install only what you need — the framework plugins pull in `deepslate-core` automatically.
+The monorepo publishes framework plugins for two languages. The **LiveKit** plugin is available in both Python and Node.js/TypeScript; the **Pipecat** plugin is Python-only. Each plugin pulls in its language's `core` package automatically — install only the plugin you need.
 
 <CardGroup cols={2}>
-  <Card title="deepslate-livekit" icon="tower-broadcast" href="/livekit">
-    `RealtimeModel` plugin for [LiveKit Agents](https://github.com/livekit/agents). Drop into any LiveKit Agents project with a one-line model swap.
+  <Card title="deepslate-livekit (Python)" icon="tower-broadcast" href="livekit">
+    `RealtimeModel` plugin for [LiveKit Agents](https://github.com/livekit/agents). Drop into any Python LiveKit Agents project with a one-line model swap.
   </Card>
-  <Card title="deepslate-pipecat" icon="pipe-valve" href="/pipecat">
+  <Card title="@deepslate-labs/livekit (Node.js)" icon="tower-broadcast" href="livekit-node">
+    `RealtimeModel` plugin for the [LiveKit Agents](https://github.com/livekit/agents) Node framework. Same configuration model, written against the TypeScript API.
+  </Card>
+  <Card title="deepslate-pipecat (Python)" icon="pipe-valve" href="pipecat">
     `LLMService` plugin for [Pipecat](https://github.com/pipecat-ai/pipecat). Integrates with any Pipecat transport and the full frame-based pipeline architecture.
   </Card>
 </CardGroup>
 
 <CodeGroup>
-```bash LiveKit
+```bash LiveKit (Python)
 pip install deepslate-livekit
 ```
-```bash Pipecat
+```bash LiveKit (Node.js)
+npm install @deepslate-labs/livekit
+```
+```bash Pipecat (Python)
 pip install deepslate-pipecat
 ```
 </CodeGroup>
 
-View source on GitHub: [deepslate-livekit](https://github.com/deepslate-labs/deepslate-sdks/tree/main/packages/livekit) · [deepslate-pipecat](https://github.com/deepslate-labs/deepslate-sdks/tree/main/packages/pipecat)
+View source on GitHub: [livekit (Python)](https://github.com/deepslate-labs/deepslate-sdks/tree/main/python/packages/livekit) · [livekit (Node.js)](https://github.com/deepslate-labs/deepslate-sdks/tree/main/node/packages/livekit) · [pipecat (Python)](https://github.com/deepslate-labs/deepslate-sdks/tree/main/python/packages/pipecat)
 
 ## Credentials
 
@@ -68,19 +74,24 @@ Each configuration class (`DeepslateOptions`, `RealtimeModel`, etc.) accepts the
 Never expose these credentials to clients. All SDK packages are designed for **server-side use** only.
 </Warning>
 
-## deepslate-core
+## Core packages
 
-`deepslate-core` is the shared foundation that both plugins are built on. It handles WebSocket connectivity, protobuf framing, session lifecycle, and exponential-backoff reconnection.
+Each language has a shared foundation that its plugins are built on — `deepslate-core` (Python) and `@deepslate-labs/core` (Node.js). It handles WebSocket connectivity, protobuf framing, session lifecycle, and exponential-backoff reconnection.
 
 <Note>
-You **don't need to install `deepslate-core` directly** when using the LiveKit or Pipecat plugins — they include it as a dependency. Install it only if you're building a **custom integration** outside of these frameworks.
+You **don't need to install the core package directly** when using the LiveKit or Pipecat plugins — they include it as a dependency. Install it only if you're building a **custom integration** outside of these frameworks.
 </Note>
 
-```bash
+<CodeGroup>
+```bash Python
 pip install deepslate-core
 ```
+```bash Node.js
+npm install @deepslate-labs/core
+```
+</CodeGroup>
 
-The central building block is `DeepslateSession`, which manages the full protocol lifecycle and delivers events to a `DeepslateSessionListener` you subclass:
+The central building block is `DeepslateSession`, which manages the full protocol lifecycle. In Python it delivers events to a `DeepslateSessionListener` you subclass; in Node.js it is an event emitter you subscribe to with `session.on(...)`. The Python version:
 
 ```python
 from deepslate.core import (
@@ -112,40 +123,62 @@ listener.session = session
 session.start()
 ```
 
-For the full `DeepslateSession` API — including all send methods and listener callbacks — see the [deepslate-core source](https://github.com/deepslate-labs/deepslate-sdks/tree/main/packages/core).
+For the full `DeepslateSession` API — including all send methods and event callbacks — see the core source: [Python](https://github.com/deepslate-labs/deepslate-sdks/tree/main/python/packages/core) · [Node.js](https://github.com/deepslate-labs/deepslate-sdks/tree/main/node/packages/core).
 
 ## Repository
 
-All packages are maintained in a single monorepo managed with [`uv`](https://docs.astral.sh/uv/) workspaces:
+All packages are maintained in a single polyglot monorepo, split by language. The Python workspace is managed with [`uv`](https://docs.astral.sh/uv/); the Node.js workspace with [`pnpm`](https://pnpm.io/):
 
 ```
 deepslate-sdks/
-├── packages/
-│   ├── core/      # deepslate-core — shared WebSocket client and session logic
-│   ├── livekit/   # deepslate-livekit — LiveKit Agents plugin
-│   └── pipecat/   # deepslate-pipecat — Pipecat plugin
-└── pyproject.toml # uv workspace root
+├── python/
+│   ├── packages/
+│   │   ├── core/      # deepslate-core — shared WebSocket client and session logic
+│   │   ├── livekit/   # deepslate-livekit — LiveKit Agents plugin
+│   │   └── pipecat/   # deepslate-pipecat — Pipecat plugin
+│   └── pyproject.toml # uv workspace root
+└── node/
+    ├── packages/
+    │   ├── core/      # @deepslate-labs/core — shared WebSocket client and session logic
+    │   └── livekit/   # @deepslate-labs/livekit — LiveKit Agents plugin
+    └── pnpm-workspace.yaml
 ```
 
-Contributions are welcome. To set up a local development environment:
+Contributions are welcome. Before setting up a local development environment, make sure you have:
 
-```bash
+- [Git](https://git-scm.com/)
+- [`uv`](https://docs.astral.sh/uv/) for the Python workspace
+- [`pnpm`](https://pnpm.io/) and Node.js 18+ for the Node.js workspace
+
+Then clone the repository and install dependencies for the workspace you want:
+
+<CodeGroup>
+```bash Python
 git clone https://github.com/deepslate-labs/deepslate-sdks.git
-cd deepslate-sdks
+cd deepslate-sdks/python
 uv sync --all-packages
 ```
+```bash Node.js
+git clone https://github.com/deepslate-labs/deepslate-sdks.git
+cd deepslate-sdks/node
+pnpm install
+```
+</CodeGroup>
 
 <CardGroup cols={2}>
-  <Card title="LiveKit Plugin" icon="tower-broadcast" href="/livekit">
+  <Card title="LiveKit Plugin (Python)" icon="tower-broadcast" href="livekit">
     Full configuration reference, features, and examples
   </Card>
-  <Card title="Pipecat Plugin" icon="pipe-valve" href="/pipecat">
+  <Card title="LiveKit Plugin (Node.js)" icon="tower-broadcast" href="livekit-node">
+    TypeScript configuration reference, features, and examples
+  </Card>
+  <Card title="Pipecat Plugin (Python)" icon="pipe-valve" href="pipecat">
     Full configuration reference, features, and frame reference
   </Card>
   <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-sdks">
     Source code, issues, and contributions
   </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/realtime">
+  <Card title="API Reference" icon="code" href="api-reference/realtime">
     WebSocket message schemas and protocol documentation
   </Card>
 </CardGroup>

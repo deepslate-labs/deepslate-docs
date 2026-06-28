@@ -36,6 +36,7 @@
             "pages": [
               "sdks",
               "livekit",
+              "livekit-node",
               "pipecat"
             ]
           },

@@ -1,0 +1,389 @@
+---
+title: 'LiveKit Plugin (Node.js)'
+description: 'Integrate Deepslate voice AI with the LiveKit Agents Node framework for real-time voice applications'
+icon: 'microphone-lines'
+---
+
+Use the `@deepslate-labs/livekit` package to add a `RealtimeModel` implementation to the [LiveKit Agents](https://github.com/livekit/agents) **Node.js / TypeScript** framework, so you can integrate with the Deepslate unified voice AI infrastructure.
+
+<Note>
+Using the **Python** LiveKit framework instead? See the [LiveKit Plugin (Python)](livekit) page for the `deepslate-livekit` package. The two plugins share the same configuration model and feature set; this page is written against the Node framework's API (the realtime classes live under the `llm` namespace, and audio frames come from `@livekit/rtc-node`).
+</Note>
+
+<Note>
+This plugin lives in the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks). We welcome contributions — feel free to open issues or pull requests there.
+</Note>
+
+## Prerequisites
+
+- A Deepslate account with API credentials
+- Node.js 18+
+- LiveKit server and API credentials
+- (Optional) ElevenLabs API key for server-side TTS
+
+## Installation
+
+```bash
+npm install @deepslate-labs/livekit
+```
+
+The plugin declares the LiveKit framework packages as **peer dependencies** — install them alongside it:
+
+```bash
+npm install @livekit/agents @livekit/rtc-node
+```
+
+You don't need to install `@deepslate-labs/core` separately. It's pulled in automatically.
+
+## Environment Variables
+
+Set up your credentials as environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
+| `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
+| `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
+| `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
+| `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
+
+<Warning>
+Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is for **server-side use** with LiveKit Agents.
+</Warning>
+
+## Quick Start
+
+```ts
+import { fileURLToPath } from "node:url";
+import { type JobContext, ServerOptions, cli, defineAgent, voice } from "@livekit/agents";
+import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
+
+export default defineAgent({
+  entry: async (ctx: JobContext) => {
+    await ctx.connect();
+
+    const session = new voice.AgentSession({
+      llm: new RealtimeModel({
+        ttsConfig: elevenLabsConfigFromEnv(),
+      }),
+    });
+
+    await session.start({
+      agent: new voice.Agent({ instructions: "You are a helpful voice AI assistant." }),
+      room: ctx.room,
+    });
+
+    session.generateReply({ instructions: "Greet the user and offer your assistance." });
+  },
+});
+
+cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
+```
+
+## Configuration Reference
+
+<AccordionGroup>
+  <Accordion title="RealtimeModel Options">
+    The `RealtimeModel` constructor takes a single options object (`RealtimeModelOptions`):
+
+    | Field | Type | Default | Description |
+    |-------|------|---------|-------------|
+    | `vendorId` | `string` | env: `DEEPSLATE_VENDOR_ID` | Deepslate vendor ID |
+    | `organizationId` | `string` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
+    | `apiKey` | `string` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
+    | `baseUrl` | `string` | `"https://app.deepslate.eu"` | Base URL for the Deepslate API |
+    | `systemPrompt` | `string` | `"You are a helpful assistant."` | Default system prompt |
+    | `temperature` | `number` | `1.0` | Sampling temperature (0.0–2.0) |
+    | `generateReplyTimeout` | `number` | `30.0` | Timeout in seconds for `generateReply` (0 = no timeout) |
+    | `vad` | `VadConfig` | defaults | Voice activity detection tuning (see below) |
+    | `ttsConfig` | `TtsConfig` | `undefined` | TTS configuration (enables audio output). Use a hosted or ElevenLabs config (see below). |
+    | `wsUrl` | `string` | `undefined` | Direct WebSocket URL override — useful for local development |
+  </Accordion>
+
+  <Accordion title="VAD Configuration">
+    Voice Activity Detection is handled **server-side** by Deepslate. You tune it via the `vad` object on `RealtimeModel` — no client-side VAD pipeline is needed.
+
+    | Field | Default | Description |
+    |-------|---------|-------------|
+    | `confidenceThreshold` | `0.5` | Minimum confidence score to classify audio as speech (0.0–1.0) |
+    | `minVolume` | `0.01` | Minimum audio volume to consider (0.0–1.0) |
+    | `startDurationMs` | `200` | Consecutive speech duration required to start a turn (ms) |
+    | `stopDurationMs` | `500` | Silence duration required to end a turn (ms) |
+    | `backbufferDurationMs` | `1000` | Audio buffered before the detection window (ms) |
+
+    ```ts
+    import { RealtimeModel } from "@deepslate-labs/livekit";
+
+    const model = new RealtimeModel({
+      vad: {
+        confidenceThreshold: 0.5,
+        minVolume: 0.01,
+        startDurationMs: 200,
+        stopDurationMs: 500,
+        backbufferDurationMs: 1000,
+      },
+    });
+    ```
+
+    **Tuning tips:**
+    - **Noisy environments:** increase `confidenceThreshold` (0.6–0.8) and `minVolume` (0.02–0.05)
+    - **Lower latency:** decrease `startDurationMs` (100–150) and `stopDurationMs` (200–300)
+    - **Natural pacing:** slightly increase `stopDurationMs` (600–800)
+  </Accordion>
+
+  <Accordion title="HostedTtsConfig">
+    Use a voice cloned and hosted within Deepslate — no external TTS provider credentials required. Pass it as `ttsConfig` to enable audio output.
+
+    | Field | Type | Default | Description |
+    |-------|------|---------|-------------|
+    | `provider` | `"hosted"` | required | Selects the Deepslate-hosted TTS provider |
+    | `voiceId` | `string` | required | The ID of the hosted (cloned) voice to use for synthesis |
+    | `mode` | `HostedTtsMode` | `HostedTtsMode.HIGH_QUALITY` | Quality/latency tradeoff for synthesis |
+
+    **`HostedTtsMode` values:**
+
+    | Value | Description |
+    |-------|-------------|
+    | `HIGH_QUALITY` | Best output quality with still relatively low latency. Recommended for most use cases (default). |
+    | `LOW_LATENCY` | Low latency generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
+
+    ```ts
+    import { RealtimeModel, HostedTtsMode } from "@deepslate-labs/livekit";
+
+    // Default — high quality
+    const model = new RealtimeModel({
+      ttsConfig: {
+        provider: "hosted",
+        voiceId: "c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f",
+      },
+    });
+
+    // Explicit low latency mode
+    const fastModel = new RealtimeModel({
+      ttsConfig: {
+        provider: "hosted",
+        voiceId: "c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f",
+        mode: HostedTtsMode.LOW_LATENCY,
+      },
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="ElevenLabsTtsConfig">
+    Configure server-side text-to-speech with ElevenLabs. Pass it as `ttsConfig` to enable audio output and automatic interruption handling.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `provider` | `"eleven_labs"` | Selects the ElevenLabs TTS provider |
+    | `apiKey` | `string` | ElevenLabs API key (env: `ELEVENLABS_API_KEY`) |
+    | `voiceId` | `string` | Voice ID (env: `ELEVENLABS_VOICE_ID`) |
+    | `modelId` | `string` | Model ID, e.g., `eleven_turbo_v2` (env: `ELEVENLABS_MODEL_ID`) |
+    | `location` | `ElevenLabsLocation` | API endpoint region — `US` (default), `EU`, or `INDIA` |
+    | `voiceSettings` | `ElevenLabsVoiceSettings` | Fine-grained voice control (see below) |
+
+    Use `elevenLabsConfigFromEnv()` to build a config from environment variables.
+
+    **`ElevenLabsVoiceSettings`** — fine-grained control over the synthesized voice:
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `stability` | `number` | Voice consistency (0.0–1.0); higher = more stable |
+    | `similarityBoost` | `number` | Clarity and similarity to the original voice (0.0–1.0) |
+    | `style` | `number` | Style exaggeration (0.0–1.0) |
+    | `useSpeakerBoost` | `boolean` | Boost similarity to the original speaker |
+    | `speed` | `number` | Speaking speed multiplier |
+
+    ```ts
+    import { RealtimeModel, ElevenLabsLocation, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
+
+    // Load from environment variables
+    const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
+
+    // Or configure manually, with overrides
+    const tunedModel = new RealtimeModel({
+      ttsConfig: {
+        provider: "eleven_labs",
+        apiKey: "your_elevenlabs_key",
+        voiceId: "21m00Tcm4TlvDq8ikWAM",
+        modelId: "eleven_turbo_v2",
+        location: ElevenLabsLocation.EU,
+        voiceSettings: { stability: 0.7, similarityBoost: 0.85, speed: 1.1 },
+      },
+    });
+    ```
+
+    <Tip>
+    When using server-side TTS (ElevenLabs or hosted), automatic interruption handling (context truncation) is enabled. The server tracks exactly what was spoken before the interruption, keeping the model's context accurate. Without server-side TTS you can use LiveKit's standard TTS integration, but this interruption context tracking will not be available.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Voice Streaming" icon="waveform-lines">
+    Low-latency bidirectional audio streaming for natural conversations
+  </Card>
+  <Card title="Server-side VAD" icon="microphone">
+    Voice activity detection handled server-side for reliable, configurable speech detection
+  </Card>
+  <Card title="Function Tools" icon="wrench">
+    Define and use function tools with LiveKit's `llm.tool()` helper
+  </Card>
+  <Card title="Flexible TTS" icon="volume-high">
+    Server-side TTS via Deepslate-hosted (cloned) voices or ElevenLabs
+  </Card>
+  <Card title="Low Latency Mode" icon="bolt">
+    Hosted voice TTS supports a low latency mode for fastest possible response at the cost of some output quality
+  </Card>
+  <Card title="Direct Speech" icon="comment-dots">
+    Speak text directly via TTS without routing through the LLM
+  </Card>
+  <Card title="Conversation Queries" icon="magnifying-glass">
+    Run one-shot side-channel inference without affecting the main conversation
+  </Card>
+  <Card title="Chat History Export" icon="clock-rotate-left">
+    Export the full conversation history on demand
+  </Card>
+  <Card title="Live Configuration" icon="sliders">
+    Update the system prompt mid-session without reconnecting
+  </Card>
+</CardGroup>
+
+## Function Tools
+
+Use LiveKit's `llm.tool()` helper to expose tools to the model. Tool parameters are described with a [zod](https://zod.dev/) schema:
+
+```ts
+import { llm, voice } from "@livekit/agents";
+import { z } from "zod";
+
+const lookupWeather = llm.tool({
+  description: "Get the current weather for a given location.",
+  parameters: z.object({
+    location: z.string().describe("The city or location to look up weather for."),
+  }),
+  execute: async ({ location }) => `It's sunny and 22°C in ${location}.`,
+});
+
+const agent = new voice.Agent({
+  instructions: "You are a helpful assistant.",
+  tools: { lookupWeather },
+});
+```
+
+## The Deepslate Session
+
+For Deepslate-specific capabilities (welcome messages, direct speech, conversation queries, history export, live configuration), obtain the underlying `DeepslateRealtimeSession` from the model with `model.session()`:
+
+```ts
+import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
+
+const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
+const session = model.session();
+```
+
+The session is an event emitter — subscribe with `session.on(...)`.
+
+## Session Initialized Event
+
+`DeepslateRealtimeSession` emits a `"session_initialized"` event once the WebSocket session is fully set up and ready to accept messages. Combine it with `speakDirect()` to send a welcome message instead of relying on a fixed delay:
+
+```ts
+const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
+const session = model.session();
+
+session.on("session_initialized", () => {
+  void session.speakDirect("Hello! How can I help you today?");
+});
+```
+
+<Note>
+Register the listener before the session connects to avoid missing the event.
+</Note>
+
+## Direct Speech
+
+`speakDirect()` synthesizes and plays audio directly — bypassing the LLM entirely. This is useful for scripted prompts, confirmations, or fallback messages.
+
+```ts
+await session.speakDirect(
+  "Welcome back! How can I help you today?",
+  true, // includeInHistory — record as an assistant turn (default: true)
+);
+```
+
+Passing `false` speaks the text without adding it to the conversation context — ideal for system-level announcements.
+
+## Conversation Queries
+
+`queryConversation()` runs a one-shot inference call on a side channel, separate from the main conversational turn. The result is returned as a string and does **not** affect the conversation history or trigger any audio.
+
+```ts
+const summary = await session.queryConversation(
+  "Summarize the conversation so far in one sentence.",
+);
+console.log(summary); // e.g., "The user asked about weather in Berlin."
+```
+
+You can also pass a second `instructions` argument to further constrain the model's output format.
+
+## Chat History Export
+
+Export the full conversation history at any point during a session. The result is delivered via the `"chat_history_exported"` event:
+
+```ts
+// Listen for the export result
+session.on("chat_history_exported", (messages) => {
+  for (const msg of messages) {
+    console.log(msg.role, msg.content);
+  }
+});
+
+// Request the export
+await session.exportChatHistory(
+  false, // awaitPending — set true to wait for any in-flight operations first
+  false, // excludeAudio — set true to omit audio blobs (transcripts only)
+);
+```
+
+## Live Configuration
+
+Update the system prompt mid-session without reconnecting:
+
+```ts
+await session.updateInstructions(
+  "You are now a concise assistant. Keep replies under two sentences.",
+);
+```
+
+Changes take effect on the next model turn.
+
+## Contributing
+
+This plugin is open source. Visit the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks) to:
+
+- Report issues
+- Submit pull requests
+- Request features
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="LiveKit Plugin (Python)" icon="microphone-lines" href="livekit">
+    The Python edition of this plugin
+  </Card>
+  <Card title="WebSocket API" icon="server" href="websocket">
+    Low-level WebSocket access for custom integrations
+  </Card>
+  <Card title="API Reference" icon="code" href="api-reference/realtime">
+    Full message schemas and configuration options
+  </Card>
+  <Card title="LiveKit Agents Docs" icon="book" href="https://docs.livekit.io/agents/">
+    LiveKit Agents framework documentation
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/deepslate-labs/deepslate-sdks">
+    Source code, issues, and contributions
+  </Card>
+</CardGroup>
