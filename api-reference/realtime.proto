@@ -423,6 +423,18 @@ message InitializeSessionRequest {
   //
   // This flag is considered experimental and may be removed or changed without a major version bump.
   bool enable_vad_frame_telemetry = 7;
+
+  // Optional experiments to enable.
+  //
+  // Maps the name of the experiment to a parameter value. The semantics of the parameter value
+  // is defined by the experiment itself.
+  //
+  // There are zero stability guarantees given for experiments. They may be removed or changed without
+  // any version bump or warning. Use at your own risk.
+  //
+  // Behavior of experiments is subject to the experiment itself, and may arbitrarily enable, disable
+  // or change parts of the protocol and underlying behavior. Unknown experiments are ignored.
+  map<string, google.protobuf.Value> experiments = 8;
 }
 
 /*
@@ -567,6 +579,12 @@ message DirectSpeech {
   // but the LLM doesn't know that it was spoken. The message will be marked
   // as ephemeral in the chat history.
   bool include_in_history = 2;
+
+  // When true, the user cannot interrupt this utterance: it plays to
+  // completion and overlapping user speech is ignored until playback
+  // finishes. Used for compliance announcements (e.g. notifying the user
+  // they are speaking with an AI). Defaults to false (interruptible).
+  bool uninterruptable = 3;
 }
 
 /*
@@ -597,6 +615,28 @@ message ConversationQueryResult {
 }
 
 /*
+ * Sent by the client to ping corvidae.
+ *
+ * This can be used to keep the session alive if no other packets are being
+ * sent, or to measure round-trip latency.
+ *
+ * As a special case this packet is allowed to be sent before a session is initialized.
+ *
+ * Corvidae does not require you to send this packet as long as other packets are flowing
+ * continuously. Typically (depending on the deployment) a session times out after 30 seconds
+ * of not receiving any packets (a silent audio stream still counts as activity, as
+ * it sends packets). If you want to make sure that the connection is never dropped, send
+ * a Ping unconditionally every 10 seconds (or less, depending on the deployment) to keep
+ * the session alive.
+ */
+message Ping {}
+
+/*
+ * Sent by corvidae as a response to a Ping message.
+ */
+message Pong {}
+
+/*
  * Message sent from the client to the service.
  */
 message ServiceBoundMessage {
@@ -611,6 +651,7 @@ message ServiceBoundMessage {
     PlaybackPositionReport playback_position_report = 8;
     DirectSpeech direct_speech = 9;
     ConversationQuery conversation_query = 10;
+    Ping ping = 11;
   }
 }
 
@@ -941,5 +982,6 @@ message ClientBoundMessage {
     VadAnalysisFrame vad_analysis_frame = 12;
     VadStateEvent vad_state_event = 13;
     ContextTruncated context_truncated = 14;
+    Pong pong = 15;
   }
 }
