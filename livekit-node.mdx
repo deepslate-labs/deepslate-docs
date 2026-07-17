@@ -275,7 +275,7 @@ const agent = new voice.Agent({
 
 ## The Deepslate Session
 
-For Deepslate-specific capabilities (welcome messages, direct speech, conversation queries, history export, live configuration), obtain the underlying `DeepslateRealtimeSession` from the model with `model.session()`:
+For Deepslate-specific capabilities (direct speech, conversation queries, history export, live configuration), obtain the underlying `DeepslateRealtimeSession` from the model with `model.session()`:
 
 ```ts
 import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
@@ -286,22 +286,34 @@ const session = model.session();
 
 The session is an event emitter — subscribe with `session.on(...)`.
 
-## Session Initialized Event
+## Sending a Welcome Message
 
-`DeepslateRealtimeSession` emits a `"session_initialized"` event once the WebSocket session is fully set up and ready to accept messages. Combine it with `speakDirect()` to send a welcome message instead of relying on a fixed delay:
+To greet the user, speak directly the moment the agent becomes active. Subclass `voice.Agent`, override `onEnter()`, and call `speakDirect()` on the realtime session that the `AgentSession` created for you, reachable via `getActivityOrThrow().realtimeLLMSession`. `speakDirect()` buffers the utterance until the session is ready, so no fixed delay or event handling is needed:
 
 ```ts
-const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
-const session = model.session();
+import { voice } from "@livekit/agents";
+import { RealtimeModel, DeepslateRealtimeSession, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
 
-session.on("session_initialized", () => {
-  void session.speakDirect("Hello! How can I help you today?");
+class Assistant extends voice.Agent {
+  constructor() {
+    super({ instructions: "You are a helpful voice AI assistant." });
+  }
+
+  async onEnter(): Promise<void> {
+    const session = this.getActivityOrThrow().realtimeLLMSession as DeepslateRealtimeSession;
+    await session.speakDirect(
+      "Please note that this call is handled by an AI and may be recorded.",
+      /* includeInHistory */ true,
+      /* uninterruptable */ true,
+    );
+  }
+}
+
+const session = new voice.AgentSession({
+  llm: new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() }),
 });
+await session.start({ agent: new Assistant(), room: ctx.room });
 ```
-
-<Note>
-Register the listener before the session connects to avoid missing the event.
-</Note>
 
 ## Direct Speech
 
@@ -310,11 +322,14 @@ Register the listener before the session connects to avoid missing the event.
 ```ts
 await session.speakDirect(
   "Welcome back! How can I help you today?",
-  true, // includeInHistory — record as an assistant turn (default: true)
+  true,  // includeInHistory — record as an assistant turn (default: true)
+  false, // uninterruptable — allow the user to barge in (default: false)
 );
 ```
 
-Passing `false` speaks the text without adding it to the conversation context — ideal for system-level announcements.
+Passing `includeInHistory: false` speaks the text without adding it to the conversation context — ideal for system-level announcements.
+
+Passing `uninterruptable: true` makes the utterance play to completion: overlapping user speech is ignored until playback finishes.
 
 ## Conversation Queries
 

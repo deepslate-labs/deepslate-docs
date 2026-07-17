@@ -269,11 +269,12 @@ Reconfiguration is not guaranteed to be seamless. There may be brief audio glitc
 Use `DirectSpeech` to speak text via TTS immediately, bypassing the LLM. Any active inference is cancelled and the audio buffer is cleared before the text is spoken.
 
 ```javascript
-function speak(text, includeInHistory = true) {
+function speak(text, includeInHistory = true, uninterruptable = false) {
   const message = ServiceBoundMessage.create({
     directSpeech: {
       text,
-      includeInHistory  // false = ephemeral, LLM won't know it was spoken
+      includeInHistory,  // false = ephemeral, LLM won't know it was spoken
+      uninterruptable    // true = plays to completion, barge-in is ignored
     }
   });
   ws.send(ServiceBoundMessage.encode(message).finish());
@@ -281,9 +282,14 @@ function speak(text, includeInHistory = true) {
 
 // Speak a notice the LLM shouldn't know about
 speak('Please hold, transferring your call.', false);
+
+// Speak a compliance announcement the user cannot interrupt
+speak('Please note that this call is handled by an AI and may be recorded.', true, true);
 ```
 
 When `includeInHistory` is `false`, the message is marked as ephemeral in the chat history — it is audible to the user but invisible to the LLM's context.
+
+When `uninterruptable` is `true`, the utterance plays to completion and overlapping user speech is ignored until playback finishes. It defaults to `false` (interruptible). Use it for compliance announcements, such as notifying the user that they are speaking with an AI.
 
 ## Conversation Query
 
