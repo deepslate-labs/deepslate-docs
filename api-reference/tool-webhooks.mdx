@@ -18,6 +18,7 @@ Requests are delivered as `HTTP POST` with `Content-Type: application/json`. Any
 | `type` | `string` | Always `"tool_webhook"` |
 | `name` | `string` | The name of the tool being called |
 | `callId` | `string` | UUID identifying the current call |
+| `sessionId` | `string` | ID of the session this call belongs to |
 | `transport` | `object` | Information about how the call was connected |
 | `parameters` | `object` | The arguments the LLM passed to the tool, matching your schema |
 
@@ -71,7 +72,8 @@ Authorization: Bearer secret-token
 {
   "type": "tool_webhook",
   "name": "book_appointment",
-  "callId": "call-a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "sessionId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "transport": {
     "type": "sip",
     "calledNumber": "+4930123456789",
@@ -148,7 +150,7 @@ Supported parameter types: `string`, `integer`, `number`, `boolean`, `object`, `
 |---------------------|-------------|-------|
 | URL | Yes | Fixed at configuration time |
 | HTTP headers | Yes | Static key/value pairs, fixed at configuration time |
-| Body | Partially | Structure is fixed (type, name, callId, transport, parameters); the content of parameters is indirectly configurable via the schema |
+| Body | Partially | Structure is fixed (type, name, callId, sessionId, transport, parameters); the content of parameters is indirectly configurable via the schema |
 
 ## Setting up
 

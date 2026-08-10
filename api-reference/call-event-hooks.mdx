@@ -58,6 +58,7 @@ Every event payload contains these top-level fields.
 |-------|------|-------------|
 | `type` | `string` | The event type: `call_started` or `call_concluded` |
 | `callId` | `string` | UUID that uniquely identifies this call |
+| `sessionId` | `string` | ID of the session this call belongs to |
 | `transport` | `object \| null` | Information about how the call was connected |
 
 ### Transport object
@@ -99,6 +100,7 @@ Fired immediately when the call is connected.
 |-------|------|-------------|
 | `type` | `string` | `"call_started"` |
 | `callId` | `string` | UUID of the call |
+| `sessionId` | `string` | ID of the session this call belongs to |
 | `startedAt` | `number \| null` | Call start time — Unix timestamp in **milliseconds** |
 | `transport` | `object \| null` | Transport info |
 
@@ -108,6 +110,7 @@ Fired immediately when the call is connected.
 {
   "type": "call_started",
   "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "sessionId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "startedAt": 1740571200000,
   "transport": {
     "type": "sip",
@@ -129,6 +132,7 @@ Fired after the call ends. Contains the complete conversation history, LLM-gener
 |-------|------|-------------|
 | `type` | `string` | `"call_concluded"` |
 | `callId` | `string` | UUID of the call |
+| `sessionId` | `string` | ID of the session this call belongs to |
 | `startedAt` | `number \| null` | Call start time — Unix timestamp in **milliseconds** |
 | `endedAt` | `number \| null` | Call end time — Unix timestamp in **milliseconds** |
 | `shortSummary` | `string \| null` | Short LLM-generated summary of the call |
@@ -143,6 +147,7 @@ Fired after the call ends. Contains the complete conversation history, LLM-gener
 {
   "type": "call_concluded",
   "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "sessionId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "startedAt": 1740571200000,
   "endedAt": 1740571500000,
   "shortSummary": "Customer enquired about the Pro plan pricing.",
