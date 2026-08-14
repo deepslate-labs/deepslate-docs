@@ -3067,9 +3067,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": true,
             "description": "Specific parameters for this extension instance. Required for both create and update.",
             "example": {
               "kb_url": "https://new-kb.example.com/api",
@@ -3197,9 +3195,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": true,
             "description": "Specific parameters for this extension instance. Required for both create and update.",
             "example": {
               "crm_system_url": "https://updated-crm.example.com/api",
@@ -3412,9 +3408,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": true,
             "description": "Specific parameters for this extension instance (structure depends on the extension type).",
             "example": {
               "kb_url": "https://kb.example.com/api",
@@ -3539,9 +3533,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": true,
             "description": "Specific parameters for this extension instance (structure depends on the extension type). Null values may be present.",
             "example": {
               "kb_url": "https://kb.example.com/api",
@@ -3694,9 +3686,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": true,
             "description": "Specific parameters for this extension instance (structure depends on the extension type).",
             "example": {
               "crm_system_url": "https://mycrm.example.com/api",
@@ -3835,9 +3825,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": true,
             "description": "Specific parameters for this extension instance (structure depends on the extension type).",
             "example": {
               "crm_system_url": "https://mycrm.example.com/api",
