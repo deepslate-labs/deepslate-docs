@@ -18,6 +18,10 @@ Call Event Hooks are outbound HTTP webhooks that fire at specific points in a ca
 
 Webhooks are delivered using the configured HTTP method with `Content-Type: application/json`. Fields whose value is `null` are omitted from the payload.
 
+<Note>
+The event payload is always sent as the JSON request body, regardless of the configured method, including for `GET` and `DELETE`. It is never sent as query parameters.
+</Note>
+
 ### Retry behaviour
 
 The platform guarantees at-least-once delivery. If your endpoint returns an HTTP error status or does not respond within **30 seconds**, the delivery is retried automatically.
