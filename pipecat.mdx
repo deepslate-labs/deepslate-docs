@@ -350,11 +350,14 @@ await task.queue_frame(
     DeepslateDirectSpeechFrame(
         text="Welcome back! How can I help you today?",
         include_in_history=True,  # Records as an assistant turn (default: True)
+        uninterruptable=False,    # Allow the user to barge in (default: False)
     )
 )
 ```
 
 Set `include_in_history=False` to speak without adding the text to the conversation context — ideal for system-level announcements.
+
+Set `uninterruptable=True` to make the utterance play to completion: overlapping user speech is ignored until playback finishes.
 
 ## Conversation Queries
 
@@ -413,7 +416,7 @@ In addition to standard Pipecat frames, `deepslate-pipecat` exposes the followin
 | Frame | Description |
 |-------|-------------|
 | `DeepslateExportChatHistoryFrame` | Request a full chat history export. Set `await_pending: bool` to wait for in-flight ops before exporting. Set `exclude_audio: bool` to omit audio blobs from the result (transcripts only). |
-| `DeepslateDirectSpeechFrame` | Speak text directly via TTS, bypassing the LLM. `text: str`, `include_in_history: bool`. |
+| `DeepslateDirectSpeechFrame` | Speak text directly via TTS, bypassing the LLM. `text: str`, `include_in_history: bool`, `uninterruptable: bool`. |
 | `DeepslateConversationQueryFrame` | One-shot side-channel inference. `prompt: str \| None`, `instructions: str \| None`. |
 
 ### Output Frames (emitted by the service)
