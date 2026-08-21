@@ -617,7 +617,7 @@ Optional text-to-speech configuration. If omitted, raw text fragments are sent.
     ```
 
     <Note>
-    Use 20 to 25 seconds of clean speech for `voice_clone_v1.audio_data`. In JSON, protobuf `bytes` fields are base64-encoded; binary protobuf clients send the raw audio bytes.
+    Use 10 to 15 seconds of clean speech for `voice_clone_v1.audio_data`. In JSON, protobuf `bytes` fields are base64-encoded; binary protobuf clients send the raw audio bytes.
     </Note>
   </Tab>
 </Tabs>
@@ -658,7 +658,7 @@ Provide an inline custom voice clone for hosted TTS using reference audio and it
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `audio_data` | bytes | Raw reference audio bytes. Use 20 to 25 seconds of clean speech. |
+| `audio_data` | bytes | Raw reference audio bytes. Use 10 to 15 seconds of clean speech. |
 | `audio_format` | AudioLineConfiguration | Format of `audio_data`, including sample rate, channel count, and sample format |
 | `ref_text` | string | Exact transcript of the reference audio, including disfluencies and false starts |
 

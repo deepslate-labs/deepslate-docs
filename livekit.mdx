@@ -95,7 +95,7 @@ if __name__ == "__main__":
     | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for `generate_reply` (0 = no timeout) |
     | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
-    | `tts_config` | `ElevenLabsTtsConfig \| HostedTtsConfig \| None` | `None` | TTS configuration (enables audio output). Use `ElevenLabsTtsConfig` for ElevenLabs synthesis or `HostedTtsConfig` for Deepslate-hosted cloned voices. |
+    | `tts_config` | `ElevenLabsTtsConfig \| HostedTtsConfig \| HostedVoiceCloneConfig \| None` | `None` | TTS configuration (enables audio output). Use `ElevenLabsTtsConfig` for ElevenLabs synthesis, `HostedTtsConfig` for a pre-cloned Deepslate-hosted voice, or `HostedVoiceCloneConfig` to clone a voice on the fly from an audio sample. |
     | `http_session` | `aiohttp.ClientSession \| None` | `None` | Shared aiohttp session |
     | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
     | `vad_min_volume` | `float` | `0.01` | Minimum volume threshold (0.0–1.0) |
@@ -147,6 +147,38 @@ if __name__ == "__main__":
         )
     )
     ```
+  </Accordion>
+
+  <Accordion title="HostedVoiceCloneConfig">
+    Clone a voice on the fly from a raw audio sample, with no pre-uploaded voice ID required. The sample is sent as part of the session initialization request. Pass an instance to `RealtimeModel(tts_config=...)` to enable audio output.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `audio_data` | `bytes` | required | Raw PCM audio data of the voice sample (10 to 15 seconds of speech) |
+    | `audio_sample_rate` | `int` | required | Sample rate of the audio sample in Hz |
+    | `audio_channels` | `int` | required | Number of audio channels in the sample |
+    | `ref_text` | `str` | required | Exact transcript of the voice sample, including disfluencies and false starts |
+    | `mode` | `HostedTtsMode` | `HostedTtsMode.HIGH_QUALITY` | Quality/latency tradeoff for synthesis |
+
+    The `mode` parameter accepts the same `HostedTtsMode` values as `HostedTtsConfig` above.
+
+    ```python
+    from pathlib import Path
+    from deepslate.livekit import HostedVoiceCloneConfig
+
+    llm = deepslate.livekit.RealtimeModel(
+        tts_config=HostedVoiceCloneConfig(
+            audio_data=Path("voice_sample.pcm").read_bytes(),
+            audio_sample_rate=24000,
+            audio_channels=1,
+            ref_text="Hi there, um, thanks for calling. How can I help you today?",
+        )
+    )
+    ```
+
+    <Tip>
+    For best results, provide a clean 10 to 15 second sample and a `ref_text` that transcribes the audio exactly, including filler words and false starts. An accurate transcript improves the quality of the cloned voice.
+    </Tip>
   </Accordion>
 
   <Accordion title="ElevenLabsTtsConfig">
@@ -212,6 +244,9 @@ if __name__ == "__main__":
   </Card>
   <Card title="Low Latency Mode" icon="bolt">
     Hosted voice TTS supports a low latency mode for fastest possible response at the cost of some output quality
+  </Card>
+  <Card title="Voice Cloning" icon="clone">
+    Use a pre-cloned hosted voice or clone one on the fly from a raw audio sample, with no external TTS credentials
   </Card>
   <Card title="Direct Speech" icon="comment-dots">
     Speak text directly via TTS without routing through the LLM
