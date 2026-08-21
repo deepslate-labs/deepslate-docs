@@ -3,15 +3,19 @@ title: 'Tool Webhooks'
 description: 'Configure outbound webhooks for real-time data lookups and actions during calls'
 ---
 
-Tool Webhooks let your AI assistant call external services in real time during a phone call. When the LLM decides to invoke a tool, the platform sends an HTTP `POST` request to a server URL you configure. Your server performs the action — querying a database, booking an appointment, looking up a record — and returns a result that the LLM uses to continue the conversation.
+Tool Webhooks let your AI assistant call external services in real time during a phone call. When the LLM decides to invoke a tool, the platform sends an HTTP request to a server URL you configure. Your server performs the action — querying a database, booking an appointment, looking up a record — and returns a result that the LLM uses to continue the conversation.
 
 ## Request reference
 
-When the LLM triggers a tool, the platform sends a `POST` request to the configured `serverUrl`.
+When the LLM triggers a tool, the platform sends a request to the configured `serverUrl` using the configured HTTP `method` (`POST` by default).
 
 ### Request body fields
 
-Requests are delivered as `HTTP POST` with `Content-Type: application/json`. Any headers you configured are included on every request.
+Requests are delivered with `Content-Type: application/json` using the configured HTTP method. Any headers you configured are included on every request.
+
+<Note>
+The request body is always sent as JSON, regardless of the configured method, including for `GET` and `DELETE`. It is never sent as query parameters.
+</Note>
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -101,8 +105,9 @@ Each tool webhook has the following fields:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | The tool name the LLM sees |
-| `serverUrl` | Yes | The URL to `POST` to when the tool is called |
+| `serverUrl` | Yes | The URL to call when the tool is invoked |
 | `schema` | Yes | The tool specification in OpenAI function format |
+| `method` | No | HTTP method used for the request: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`. If not specified when creating a webhook, defaults to `POST` |
 | `headers` | No | Static HTTP headers added to every outgoing request |
 
 ### Schema format
@@ -149,6 +154,7 @@ Supported parameter types: `string`, `integer`, `number`, `boolean`, `object`, `
 | Part of the request | Configurable | Notes |
 |---------------------|-------------|-------|
 | URL | Yes | Fixed at configuration time |
+| HTTP method | Yes | `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`, fixed at configuration time |
 | HTTP headers | Yes | Static key/value pairs, fixed at configuration time |
 | Body | Partially | Structure is fixed (type, name, callId, sessionId, transport, parameters); the content of parameters is indirectly configurable via the schema |
 
@@ -161,7 +167,7 @@ Tool Webhooks are configured per Assistant or Agent as LLM Extensions.
 1. Open the Assistant or Agent you want to configure.
 2. Navigate to the **LLM Extensions** (**LLM Erweiterungen**) section.
 3. Click **Add** (**Hinzufügen**) and select the extension type **tool_webhook**.
-4. Enter the tool name, server URL, schema (OpenAI function format), and any HTTP headers.
+4. Enter the tool name, server URL, HTTP method, schema (OpenAI function format), and any HTTP headers.
 5. Save. The tool webhook is now active for all future calls on that Assistant or Agent.
 
 To update a tool webhook, edit the fields in place and save. To remove one, delete it from the list and save.
@@ -197,6 +203,7 @@ Tool webhooks are managed through the Assistant and Agent endpoints using the `e
             "name": "book_appointment",
             "serverUrl": "https://api.example.com/my-webhook",
             "schema": "{\"name\":\"book_appointment\",\"description\":\"...\",\"parameters\":{...}}",
+            "method": "POST",
             "headers": {
               "Authorization": "Bearer secret-token"
             }
@@ -215,6 +222,7 @@ Tool webhooks are managed through the Assistant and Agent endpoints using the `e
     | `parameters.name` | `string` | The tool name the LLM sees |
     | `parameters.serverUrl` | `string` | The target URL for outgoing requests |
     | `parameters.schema` | `string` | The tool specification as a JSON string |
+    | `parameters.method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE` |
     | `parameters.headers` | `object` | Static HTTP headers as key/value pairs |
   </Accordion>
 
@@ -236,6 +244,7 @@ Tool webhooks are managed through the Assistant and Agent endpoints using the `e
             "name": "book_appointment",
             "serverUrl": "https://api.example.com/my-webhook",
             "schema": "{\"name\":\"book_appointment\",\"description\":\"...\",\"parameters\":{...}}",
+            "method": "POST",
             "headers": {
               "Authorization": "Bearer secret-token"
             }
@@ -283,7 +292,8 @@ Tool webhooks are managed through the Assistant and Agent endpoints using the `e
           "parameters": {
             "name": "check_availability",
             "serverUrl": "https://api.example.com/availability",
-            "schema": "{\"name\":\"check_availability\",\"description\":\"...\",\"parameters\":{...}}"
+            "schema": "{\"name\":\"check_availability\",\"description\":\"...\",\"parameters\":{...}}",
+            "method": "GET"
           }
         }
       ]

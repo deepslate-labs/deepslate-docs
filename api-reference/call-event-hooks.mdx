@@ -3,7 +3,7 @@ title: 'Call Event Hooks'
 description: 'Receive webhook notifications when calls start and end'
 ---
 
-Call Event Hooks are outbound HTTP webhooks that fire at specific points in a call's lifecycle. When a call starts or ends, the platform sends a `POST` request with a JSON payload to every URL registered on that Assistant or Agent. Use them to trigger workflows, sync conversation data, send transcripts to your CRM, or any other external integration.
+Call Event Hooks are outbound HTTP webhooks that fire at specific points in a call's lifecycle. When a call starts or ends, the platform sends an HTTP request with a JSON payload to every URL registered on that Assistant or Agent, using the HTTP method configured for that hook (`POST` by default). Use them to trigger workflows, sync conversation data, send transcripts to your CRM, or any other external integration.
 
 ## Hook types
 
@@ -16,7 +16,11 @@ Call Event Hooks are outbound HTTP webhooks that fire at specific points in a ca
 
 ### Request format
 
-Webhooks are delivered as `HTTP POST` requests with `Content-Type: application/json`. Fields whose value is `null` are omitted from the payload.
+Webhooks are delivered using the configured HTTP method with `Content-Type: application/json`. Fields whose value is `null` are omitted from the payload.
+
+<Note>
+The event payload is always sent as the JSON request body, regardless of the configured method, including for `GET` and `DELETE`. It is never sent as query parameters.
+</Note>
 
 ### Retry behaviour
 
@@ -324,7 +328,7 @@ Call Event Hooks are configured per Assistant or Agent — they are not a standa
 
 1. Open the Assistant or Agent you want to configure.
 2. Navigate to the **Event Hooks** section.
-3. Click **Add Hook** (**Hinzufügen**), select the hook type, and enter your target URL.
+3. Click **Add Hook** (**Hinzufügen**), select the hook type, and enter your target URL and HTTP method.
 4. Save. The hook is now active for all future calls on that Assistant or Agent.
 
 To update a hook, edit the URL in place and save. To remove a hook, delete it from the list and save.
@@ -357,14 +361,16 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
           "id": "b00bface-1337-badd-cafe-d00df00dcafe",
           "type": "call_started",
           "parameters": {
-            "url": "https://your-server.com/hooks/call-started"
+            "url": "https://your-server.com/hooks/call-started",
+            "method": "POST"
           }
         },
         {
           "id": "deadbeef-cafe-babe-feed-faceabadb001",
           "type": "call_concluded",
           "parameters": {
-            "url": "https://your-server.com/hooks/call-concluded"
+            "url": "https://your-server.com/hooks/call-concluded",
+            "method": "POST"
           }
         }
       ]
@@ -378,6 +384,7 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
     | `id` | `string` | UUID of the hook instance |
     | `type` | `string` | `"call_started"` or `"call_concluded"` |
     | `parameters.url` | `string` | The target URL for this hook |
+    | `parameters.method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE` |
   </Accordion>
 
   <Accordion title="Create hooks — POST /assistants">
@@ -395,13 +402,15 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
         {
           "type": "call_started",
           "parameters": {
-            "url": "https://your-server.com/hooks/call-started"
+            "url": "https://your-server.com/hooks/call-started",
+            "method": "POST"
           }
         },
         {
           "type": "call_concluded",
           "parameters": {
-            "url": "https://your-server.com/hooks/call-concluded"
+            "url": "https://your-server.com/hooks/call-concluded",
+            "method": "POST"
           }
         }
       ]
@@ -433,13 +442,15 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
           "id": "b00bface-1337-badd-cafe-d00df00dcafe",
           "type": "call_started",
           "parameters": {
-            "url": "https://your-updated-server.com/hooks/call-started"
+            "url": "https://your-updated-server.com/hooks/call-started",
+            "method": "POST"
           }
         },
         {
           "type": "call_concluded",
           "parameters": {
-            "url": "https://your-server.com/hooks/call-concluded"
+            "url": "https://your-server.com/hooks/call-concluded",
+            "method": "GET"
           }
         }
       ]
