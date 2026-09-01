@@ -301,18 +301,20 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
   <Accordion title="ModelTextFragment" icon="text" defaultOpen>
     Streamed text output as tokens arrive.
 
-    <Warning>
-    `ModelTextFragment` is **only sent in text-only mode** - when no `tts_configuration` is present in `InitializeSessionRequest`. If TTS is configured, the server sends `ModelAudioChunk` messages instead and `ModelTextFragment` is never emitted.
-    </Warning>
+    `ModelTextFragment` is emitted for every assistant turn, whether or not TTS is configured, and carries text as the model generates it.
+
+    When TTS is configured, these fragments run ahead of speech synthesis, so they reflect what the model has produced rather than what the caller has heard. `ModelSpeechProgress` reports the playback-paced view of the same text.
 
     | Field | Type | Description |
     |-------|------|-------------|
     | `text` | string | Text content of this fragment |
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this fragment belongs to |
 
     ```json
     {
       "modelTextFragment": {
-        "text": "Hello, how can I help you?"
+        "text": "Hello, how can I help you?",
+        "turnId": 4
       }
     }
     ```
@@ -324,6 +326,7 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `audio` | AudioData | Audio bytes matching output_audio_line config |
+    | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn this audio belongs to. |
     | `transcript` | string? | Optional. When present, may be empty or contain the spoken text. See note below. |
 
     <Note>
@@ -339,6 +342,7 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
         "audio": {
           "data": "<binary-pcm-data>"
         },
+        "turnId": 4,
         "transcript": "Hello, how can I help you?"
       }
     }
@@ -714,6 +718,9 @@ A single message in the conversation history.
 | `content` | ChatMessageContent[] | Ordered content blocks of this message |
 | `delivery_status` | ChatDeliveryStatus | Delivery status of this message |
 | `ephemeral` | bool | `true` when the message was spoken via `DirectSpeech` with `include_in_history: false` — audible to the user but not in the LLM's context |
+| `created_at` | Timestamp | When the turn was created |
+| `turn_id` | uint32? | Session-local ID of the assistant turn this message belongs to |
+| `truncated_at_response_turn_id` | uint32? | If this turn was dropped from the LLM's context window, the turn ID of the assistant response first generated without it. Absent while the turn is still in context. |
 
 ### ChatMessageRole
 

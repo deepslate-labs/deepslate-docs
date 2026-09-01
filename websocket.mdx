@@ -141,9 +141,9 @@ Audio format must exactly match your session configuration. For 16-bit signed PC
 The server sends `ClientBoundMessage` with one of several payload types.
 
 <Info>
-**Text-only vs. TTS mode**
+**Text and audio output**
 
-- **`ModelTextFragment`** — sent only when **no TTS provider is configured**. Contains streamed text tokens as the model generates them.
+- **`ModelTextFragment`** — emitted for every assistant turn, whether or not TTS is configured. Contains streamed text tokens as the model generates them. When TTS is configured, they arrive ahead of speech synthesis.
 - **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains synthesized audio. The `transcript` field is optional and may be omitted entirely: Deepslate's hosted TTS does not include it; third-party providers (e.g., ElevenLabs) may include it for alignment data.
 </Info>
 
@@ -153,28 +153,30 @@ ws.on('message', (data) => {
 
   if (message.responseBegin) {
     // Model has started responding
-    console.log('Response started');
+    console.log(`Response started (turn ${message.responseBegin.turnId})`);
   }
 
   if (message.modelTextFragment) {
-    // Text-only mode: only received when no TTS provider is configured
-    process.stdout.write(message.modelTextFragment.text);
+    // Streamed text for this turn, emitted whether or not TTS is configured
+    const { text, turnId } = message.modelTextFragment;
+    appendTurnText(turnId, text);
   }
 
   if (message.modelAudioChunk) {
     // TTS mode: received when a TTS provider is configured
+    const { turnId } = message.modelAudioChunk;
     const audioData = message.modelAudioChunk.audio.data;
     // transcript is optional and may be absent — hosted TTS omits it;
     // third-party providers (e.g., ElevenLabs) may include it for alignment data
     const transcript = message.modelAudioChunk.transcript;
 
-    // Queue audio for playback
-    playAudio(audioData);
+    // Queue audio for playback, tagged with the turn it belongs to
+    playAudio(audioData, turnId);
   }
 
   if (message.responseEnd) {
     // Model has finished responding
-    console.log('Response ended');
+    console.log(`Response ended (turn ${message.responseEnd.turnId})`);
   }
 
   if (message.playbackClearBuffer) {
@@ -544,11 +546,11 @@ async function main() {
     const msg = ClientBoundMessage.decode(new Uint8Array(data));
 
     if (msg.responseBegin) {
-      console.log('\n[Response started]');
+      console.log(`\n[Response started: turn ${msg.responseBegin.turnId}]`);
     }
 
     if (msg.modelTextFragment) {
-      // Only received in text-only mode (no TTS configured)
+      // Emitted for every turn, whether or not TTS is configured
       process.stdout.write(msg.modelTextFragment.text);
     }
 
@@ -558,7 +560,7 @@ async function main() {
     }
 
     if (msg.responseEnd) {
-      console.log('\n[Response ended]');
+      console.log(`\n[Response ended: turn ${msg.responseEnd.turnId}]`);
     }
 
     if (msg.playbackClearBuffer) {
