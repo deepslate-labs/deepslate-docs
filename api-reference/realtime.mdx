@@ -349,6 +349,40 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     ```
   </Accordion>
 
+  <Accordion title="ModelSpeechProgress" icon="waveform-lines">
+    Reports how much of an assistant turn's text has become audible. Emitted continuously while TTS audio is playing.
+
+    Where `ModelTextFragment` gives you the text as the model produces it, `ModelSpeechProgress` gives you the same text paced to playback. Use it to display what the caller has actually heard.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this progress belongs to |
+    | `text` | string | Text that became audible since the previous `ModelSpeechProgress` for this turn |
+    | `audio_bytes_played` | uint64 | Audio bytes played so far, per the server's estimate |
+    | `exact` | bool | Debug indicator of whether the segment aligns precisely with played audio. See note below. |
+
+    Concatenating `text` in arrival order reproduces the same text as the turn's `ModelTextFragment` messages, so the result is always a valid prefix of the generated text.
+
+    <Note>
+    Treat `exact` as debug information only, never as a correctness gate.
+
+    A segment with `exact: false` still contains the correct and complete text. It may just not correspond precisely to the audio played so far. The server keeps this drift as small as it can, but a small amount is unavoidable.
+    </Note>
+
+    The server derives `audio_bytes_played` from its own estimate of playback. Send `PlaybackPositionReport` messages to replace that estimate with your client's real position and tighten the whole stream.
+
+    ```json
+    {
+      "modelSpeechProgress": {
+        "turnId": 4,
+        "text": "Hello, how can I",
+        "audioBytesPlayed": 48000,
+        "exact": true
+      }
+    }
+    ```
+  </Accordion>
+
   <Accordion title="ToolCallRequest" icon="terminal">
     Model requests to execute a tool.
 
