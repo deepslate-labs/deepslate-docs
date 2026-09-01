@@ -437,6 +437,43 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     ```
   </Accordion>
 
+  <Accordion title="TurnSnapshot" icon="camera">
+    The server's authoritative view of one turn's content at a point in time.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `message` | ChatMessage | The turn's content as of this snapshot |
+    | `is_final` | bool | When `true`, the turn is finalized and no further snapshots for it will arrive |
+
+    <Warning>
+    Snapshots are not guaranteed to be monotonic. A turn can produce several of them, and content can be rolled back, for example when an interruption means part of a response was never heard.
+    </Warning>
+
+    `is_final` means the turn's content will not change again. It does not mean the turn stays visible forever since context truncation can still remove it from the model's context later, which `ContextTruncated` reports.
+
+    ```json
+    {
+      "turnSnapshot": {
+        "message": {
+          "role": "ASSISTANT",
+          "turnId": 4,
+          "deliveryStatus": "DELIVERY_INTERRUPTED",
+          "ephemeral": false,
+          "createdAt": "2026-09-01T14:23:10Z",
+          "content": [
+            {
+              "textContent": {
+                "text": "It's currently 3:45"
+              }
+            }
+          ]
+        },
+        "isFinal": true
+      }
+    }
+    ```
+  </Accordion>
+
   <Accordion title="ChatHistory" icon="comments">
     The full conversation history, returned in response to `ExportChatHistoryRequest`.
 

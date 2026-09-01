@@ -181,6 +181,12 @@ ws.on('message', (data) => {
     appendSpokenText(turnId, text);
   }
 
+  if (message.turnSnapshot) {
+    // Authoritative turn content
+    const { message: turn, isFinal } = message.turnSnapshot;
+    storeTurn(turn.turnId, turn, isFinal);
+  }
+
   if (message.responseEnd) {
     // Model has finished responding
     console.log(`Response ended (turn ${message.responseEnd.turnId})`);
@@ -344,6 +350,21 @@ function onAudioBytesPlayed(byteCount) {
 
 Without playback reporting, the server falls back to elapsed-time estimation for context truncation, which is less precise. The same estimate drives `audio_bytes_played` and the pacing of `ModelSpeechProgress`, so reporting real positions tightens that stream too.
 
+## Track Turn Content
+
+`TurnSnapshot` carries the server's authoritative view of a single turn.
+
+```javascript
+const turns = new Map();
+
+function storeTurn(turnId, turn, isFinal) {
+  turns.set(turnId, { turn, isFinal });
+}
+```
+
+- **Snapshots are not guaranteed to be monotonic.** A turn can produce several, and content can be rolled back.
+- **`is_final` means immutable, not permanent.** Once a snapshot arrives with `isFinal: true`, that turn's content will not change again and no further snapshots for it will arrive. The turn can still leave the model's context later through truncation, which `ContextTruncated` reports separately.
+
 ## Export Chat History
 
 Use `ExportChatHistoryRequest` to retrieve the full conversation history at any point. Set `awaitPending: true` to wait for any in-flight transcriptions to finish before the history is returned.
@@ -483,6 +504,7 @@ async function main() {
   let packetId = 0;
   let playbackQueue = [];
   const spokenByTurn = new Map(); // turnId -> text the caller has heard
+  const turns = new Map();        // turnId -> authoritative turn content
 
   // Connect
   const ws = new WebSocket('wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/realtime', {
@@ -571,6 +593,13 @@ async function main() {
       // Text paced to playback: what the caller has heard so far
       const { turnId, text } = msg.modelSpeechProgress;
       spokenByTurn.set(turnId, (spokenByTurn.get(turnId) ?? '') + text);
+    }
+
+    if (msg.turnSnapshot) {
+      // Authoritative turn content
+      const { message: turn, isFinal } = msg.turnSnapshot;
+      turns.set(turn.turnId, turn);
+      if (isFinal) console.log(`\n[Turn ${turn.turnId} finalized]`);
     }
 
     if (msg.responseEnd) {
