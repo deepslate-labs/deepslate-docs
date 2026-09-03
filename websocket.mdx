@@ -84,7 +84,7 @@ const initMessage = ServiceBoundMessage.create({
       systemPrompt: 'You are a helpful assistant.',
       temperature: 0.7
     },
-    supportsPlaybackReporting: true  // Enable precise playback position reporting
+    supportsPlaybackReporting: true  // Hint that this client will report playback positions
   }
 });
 
@@ -93,7 +93,7 @@ const buffer = ServiceBoundMessage.encode(initMessage).finish();
 ws.send(buffer);
 ```
 
-Set `supportsPlaybackReporting: true` if your client can report how many audio bytes have been played. This enables accurate context truncation when the user interrupts the model mid-response. See [Playback Position Reporting](#playback-position-reporting).
+Set `supportsPlaybackReporting: true` to signal that your client will report how many audio bytes it has played. The flag is a hint: the server honours those reports whenever they arrive, whether or not you set it. Reporting gives you accurate context truncation when the caller interrupts mid-response. See [Playback Position Reporting](#playback-position-reporting).
 
 <Tip>
 See the [API Reference](/api-reference/realtime) for all configuration options including TTS providers and tool definitions.
@@ -333,22 +333,25 @@ At least one of `prompt` or `instructions` must be provided. If `prompt` is abse
 
 ## Playback Position Reporting
 
-If you declared `supportsPlaybackReporting: true` during session initialization, send `PlaybackPositionReport` messages regularly as audio plays. This gives the server accurate data to truncate the LLM context to exactly what the user heard when they interrupt.
+Send `PlaybackPositionReport` messages regularly as audio plays. This gives the server accurate data to truncate the LLM context to exactly what the caller heard when they interrupt.
+
+Counts are per turn, not per session. Use the `turnId` from the `ModelAudioChunk` the bytes came from, and keep a separate total for each turn.
 
 ```javascript
-let bytesPlayed = 0;
+const playedByTurn = new Map(); // turnId -> bytes played for that turn
 
-function onAudioBytesPlayed(byteCount) {
-  bytesPlayed += byteCount;
+function onAudioBytesPlayed(turnId, byteCount) {
+  const bytesPlayed = (playedByTurn.get(turnId) ?? 0) + byteCount;
+  playedByTurn.set(turnId, bytesPlayed);
 
   const message = ServiceBoundMessage.create({
-    playbackPositionReport: {
-      bytesPlayed
-    }
+    playbackPositionReport: { bytesPlayed, turnId }
   });
   ws.send(ServiceBoundMessage.encode(message).finish());
 }
 ```
+
+You do not need `supportsPlaybackReporting: true` to send these. The flag declares your intent; the server acts on the reports themselves.
 
 Without playback reporting, the server falls back to elapsed-time estimation for context truncation, which is less precise. The same estimate drives `audio_bytes_played` and the pacing of `ModelSpeechProgress`, so reporting real positions tightens that stream too.
 
