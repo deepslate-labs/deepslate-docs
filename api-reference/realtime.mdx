@@ -40,6 +40,8 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | `inference_configuration` | InferenceConfiguration | System prompt and model behavior |
     | `tts_configuration` | TtsConfiguration | Optional TTS provider config (e.g., ElevenLabs) |
     | `supports_playback_reporting` | bool | Hint that the client intends to send `PlaybackPositionReport` messages. Defaults to `false`. The server honours those reports whenever they arrive, whatever this is set to. |
+    | `enable_vad_frame_telemetry` | bool | When `true`, the server emits per-frame `VadAnalysisFrame` messages (~50 Hz). Off by default for cost and bandwidth reasons. `VadStateEvent` transitions are emitted either way. **Experimental.** |
+    | `experiments` | map&lt;string, Value&gt; | Optional experiments to enable, mapping experiment name to a parameter value whose meaning the experiment defines. **No stability guarantees.** |
 
     ```json
     {
@@ -274,6 +276,18 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     ```
   </Accordion>
 
+  <Accordion title="Ping" icon="satellite-dish">
+    Liveness check. The server replies with `Pong`. Carries no fields.
+
+    Use it to keep a session alive when nothing else is being sent, or to measure round-trip latency.
+
+    ```json
+    {
+      "ping": {}
+    }
+    ```
+  </Accordion>
+
   <Accordion title="ConversationQuery" icon="magnifying-glass">
     Runs a one-shot LLM inference over the current conversation history without modifying it. Useful for side tasks like summarization or classification. The server responds with a `ConversationQueryResult`.
 
@@ -310,7 +324,17 @@ An assistant turn ends in three stages, each reported by a different message. Th
 | `TurnSnapshot` with `is_final: true` | The turn's content is final and will not change again. |
 
 <AccordionGroup>
-  <Accordion title="ModelTextFragment" icon="text" defaultOpen>
+  <Accordion title="SessionReady" icon="circle-check" defaultOpen>
+    Sent once the session is fully initialized and ready to accept input, after TTS warmup completes. Wait for this message before sending `UserInput`. Carries no fields.
+
+    ```json
+    {
+      "sessionReady": {}
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ModelTextFragment" icon="text">
     Streamed text output as tokens arrive.
 
     `ModelTextFragment` is emitted for every assistant turn, whether or not TTS is configured, and carries text as the model generates it.
@@ -553,6 +577,90 @@ An assistant turn ends in three stages, each reported by a different message. Th
     ```
   </Accordion>
 
+  <Accordion title="ContextTruncated" icon="scissors">
+    Messages were removed from the LLM's context window to fit the token budget.
+
+    Only turns newly truncated in this inference cycle are listed. Turns reported in an earlier `ContextTruncated` are not repeated.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `truncated_turn_ids` | uint32[] | Turn IDs newly removed from the model's context. The model can no longer see these messages. |
+    | `response_turn_id` | uint32 | The assistant turn generated with the truncated context, correlating this event with that inference cycle |
+
+    A truncated turn keeps its content and stays in an exported `ChatHistory`. It is the model's view that shrinks, not yours. The turn's `ChatMessage.truncated_at_response_turn_id` records the same relationship, so you can look up when it happened after the fact.
+
+    ```json
+    {
+      "contextTruncated": {
+        "truncatedTurnIds": [1, 2],
+        "responseTurnId": 9
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="VadStateEvent" icon="wave-square">
+    Emitted on every VAD state-machine transition. Always sent, regardless of whether `enable_vad_frame_telemetry` is set.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `session_time` | Duration | Time elapsed since the input pipeline started when the transition occurred |
+    | `from_state` | VadState | The state before the transition |
+    | `to_state` | VadState | The state after the transition |
+    | `packet_id` | uint64 | The `packet_id` of the `UserInput` packet that triggered the transition |
+
+    ```json
+    {
+      "vadStateEvent": {
+        "sessionTime": { "seconds": 2, "nanos": 340000000 },
+        "fromState": "SILENCE",
+        "toState": "SPEECH_STARTING",
+        "packetId": 42
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="VadAnalysisFrame" icon="chart-waveform">
+    Per-frame VAD telemetry, emitted at ~50 Hz (20 ms frames on 16 kHz audio). Only sent when `enable_vad_frame_telemetry: true` was set in `InitializeSessionRequest`.
+
+    <Warning>
+    This message type is **experimental** and may be changed or removed without a major version bump. It is intended for debugging and telemetry. Do not rely on it for critical functionality.
+    </Warning>
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `frame_index` | uint64 | Monotonic frame index for this session |
+    | `session_time` | Duration | Wall-clock time elapsed since the input pipeline started, at the end of this frame |
+    | `confidence` | float | Raw VAD confidence score from the underlying engine (0.0–1.0) |
+    | `volume` | float | Raw RMS volume of the audio frame (0.0–1.0) |
+    | `state` | VadState | The state-machine state at the **end** of this frame |
+    | `source_packet_ids` | uint64[] | `packet_id`s whose audio contributed to this frame. Usually one; multiple at packet boundaries or with very small packets. |
+
+    ```json
+    {
+      "vadAnalysisFrame": {
+        "frameIndex": 117,
+        "sessionTime": { "seconds": 2, "nanos": 340000000 },
+        "confidence": 0.82,
+        "volume": 0.31,
+        "state": "SPEECH",
+        "sourcePacketIds": [42]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Pong" icon="satellite-dish">
+    Reply to a client `Ping`. Carries no fields.
+
+    ```json
+    {
+      "pong": {}
+    }
+    ```
+  </Accordion>
+
   <Accordion title="SessionErrorNotification" icon="triangle-exclamation">
     Structured error notification sent before the server closes the connection.
 
@@ -784,6 +892,19 @@ Controls the quality/latency trade-off for hosted TTS generation.
 |-------|-------------|
 | `HIGH_QUALITY` | Default. Higher quality output with still relatively low latency. Recommended for most use cases. |
 | `LOW_LATENCY` | Fastest generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
+
+### VadState
+
+State of the VAD debounce machine.
+
+| Value | Description |
+|-------|-------------|
+| `SILENCE` | No speech detected |
+| `SPEECH_STARTING` | Above-threshold frame seen; waiting for `start_duration` to confirm onset |
+| `SPEECH` | Active speech confirmed |
+| `SPEECH_ENDING` | Below-threshold frame seen; waiting for `stop_duration` to confirm offset |
+
+For the full state machine, including the debounce windows and the threshold rule, see [VAD](/api-reference/vad).
 
 ### Duration
 
