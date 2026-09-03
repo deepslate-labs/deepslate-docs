@@ -335,14 +335,8 @@ An assistant turn ends in three stages, each reported by a different message. Th
     |-------|------|-------------|
     | `audio` | AudioData | Audio bytes matching output_audio_line config |
     | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn this audio belongs to. |
-    | `transcript` | string? | Optional. When present, may be empty or contain the spoken text. See note below. |
 
-    <Note>
-    The `transcript` field is **optional** — it may be absent from a given chunk entirely.
-
-    - **Deepslate hosted TTS** does not populate `transcript`.
-    - **Third-party TTS providers** (e.g., ElevenLabs) may populate it to supply word-level alignment data alongside the audio.
-    </Note>
+    `ModelAudioChunk` carries audio only. For the text that goes with it, use `ModelSpeechProgress`.
 
     ```json
     {
@@ -350,8 +344,7 @@ An assistant turn ends in three stages, each reported by a different message. Th
         "audio": {
           "data": "<binary-pcm-data>"
         },
-        "turnId": 4,
-        "transcript": "Hello, how can I help you?"
+        "turnId": 4
       }
     }
     ```

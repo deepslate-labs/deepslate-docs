@@ -144,7 +144,7 @@ The server sends `ClientBoundMessage` with one of several payload types.
 **Text and audio output**
 
 - **`ModelTextFragment`** — emitted for every assistant turn, whether or not TTS is configured. Contains streamed text tokens as the model generates them. When TTS is configured, they arrive ahead of speech synthesis.
-- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains synthesized audio. The `transcript` field is optional and may be omitted entirely: Deepslate's hosted TTS does not include it; third-party providers (e.g., ElevenLabs) may include it for alignment data.
+- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains the synthesized audio. The text that goes with it arrives on `ModelSpeechProgress`.
 - **`ModelSpeechProgress`** — emitted continuously while TTS audio plays. Reports which part of the turn's text has become audible.
 </Info>
 
@@ -167,9 +167,6 @@ ws.on('message', (data) => {
     // TTS mode: received when a TTS provider is configured
     const { turnId } = message.modelAudioChunk;
     const audioData = message.modelAudioChunk.audio.data;
-    // transcript is optional and may be absent — hosted TTS omits it;
-    // third-party providers (e.g., ElevenLabs) may include it for alignment data
-    const transcript = message.modelAudioChunk.transcript;
 
     // Queue audio for playback, tagged with the turn it belongs to
     playAudio(audioData, turnId);
@@ -590,7 +587,7 @@ async function main() {
     }
 
     if (msg.modelAudioChunk) {
-      // Only received in TTS mode; transcript is optional and may be absent depending on provider
+      // Only received in TTS mode
       playbackQueue.push(Buffer.from(msg.modelAudioChunk.audio.data));
     }
 
