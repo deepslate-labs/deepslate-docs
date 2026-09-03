@@ -187,9 +187,14 @@ ws.on('message', (data) => {
     storeTurn(turn.turnId, turn, isFinal);
   }
 
+  if (message.inferenceComplete) {
+    // LLM finished generating; TTS may still be synthesizing
+    console.log(`Generation done (turn ${message.inferenceComplete.turnId})`);
+  }
+
   if (message.responseEnd) {
-    // Model has finished responding
-    console.log(`Response ended (turn ${message.responseEnd.turnId})`);
+    // No more audio for this turn; content can still change
+    console.log(`Audio ended (turn ${message.responseEnd.turnId})`);
   }
 
   if (message.playbackClearBuffer) {
@@ -600,6 +605,10 @@ async function main() {
       const { message: turn, isFinal } = msg.turnSnapshot;
       turns.set(turn.turnId, turn);
       if (isFinal) console.log(`\n[Turn ${turn.turnId} finalized]`);
+    }
+
+    if (msg.inferenceComplete) {
+      console.log(`\n[Generation done: turn ${msg.inferenceComplete.turnId}]`);
     }
 
     if (msg.responseEnd) {

@@ -297,6 +297,14 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
 
 Messages sent from server to client, wrapped in `ClientBoundMessage`.
 
+An assistant turn ends in three stages, each reported by a different message. They are not interchangeable.
+
+| Signal | Meaning |
+|--------|---------|
+| `InferenceComplete` | The LLM has finished generating. TTS may still be synthesizing. |
+| `ResponseEnd` | All audio for the turn has been sent. Content can still change due to interruption. |
+| `TurnSnapshot` with `is_final: true` | The turn's content is final and will not change again. |
+
 <AccordionGroup>
   <Accordion title="ModelTextFragment" icon="text" defaultOpen>
     Streamed text output as tokens arrive.
@@ -420,19 +428,53 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
   <Accordion title="ResponseBegin" icon="play">
     Notification that the model has begun its response.
 
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this response begins |
+
     ```json
     {
-      "responseBegin": {}
+      "responseBegin": {
+        "turnId": 4
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="InferenceComplete" icon="brain">
+    The LLM has finished producing this turn's output.
+
+    Generation is done, but the turn is not. TTS audio may still be synthesizing, and further events for the turn will still arrive.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn whose generation finished |
+
+    ```json
+    {
+      "inferenceComplete": {
+        "turnId": 4
+      }
     }
     ```
   </Accordion>
 
   <Accordion title="ResponseEnd" icon="circle-check">
-    Notification that the model has finished its response.
+    Notification that no more audio is coming for this turn. Sent once all audio packets for the turn have been sent.
+
+    <Warning>
+    `ResponseEnd` does not mean the turn is finished. The turn's content can still change afterwards, for example when an interruption shortens it.
+    </Warning>
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this response ends. Matches the `turn_id` from the preceding `ResponseBegin`. |
 
     ```json
     {
-      "responseEnd": {}
+      "responseEnd": {
+        "turnId": 4
+      }
     }
     ```
   </Accordion>
