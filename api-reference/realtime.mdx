@@ -208,11 +208,15 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `extra_instructions` | string | Optional extra instructions to guide the inference |
+    | `flush_vad` | bool | When `true`, flush whatever the VAD pipeline has buffered and append it as a user audio message before triggering inference. Defaults to `false`. |
+
+    Use `flush_vad` to commit speech the VAD has not released yet, when the trigger comes from an external signal such as a push-to-talk button or a wake word rather than from natural end-of-speech detection. It is a no-op when the buffer is empty or the deployment runs no VAD pipeline.
 
     ```json
     {
       "triggerInference": {
-        "extraInstructions": "Greet the user warmly and ask how you can help."
+        "extraInstructions": "Greet the user warmly and ask how you can help.",
+        "flushVad": false
       }
     }
     ```
@@ -265,12 +269,16 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     |-------|------|-------------|
     | `text` | string | Text to speak |
     | `include_in_history` | bool | When `false`, the text is spoken but marked as ephemeral — the LLM won't know it was spoken |
+    | `uninterruptable` | bool | When `true`, the utterance plays to completion and overlapping user speech is ignored until playback finishes. Defaults to `false`. |
+
+    Use `uninterruptable` for compliance announcements, such as notifying the caller that they are speaking with an AI.
 
     ```json
     {
       "directSpeech": {
         "text": "Please hold, transferring your call.",
-        "includeInHistory": false
+        "includeInHistory": false,
+        "uninterruptable": false
       }
     }
     ```
@@ -420,6 +428,7 @@ An assistant turn ends in three stages, each reported by a different message. Th
     | `id` | string | Unique identifier for this request |
     | `name` | string | Name of the tool to call |
     | `parameters` | object | Parameters matching the tool's schema |
+    | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn that issued this tool call. |
 
     ```json
     {
@@ -428,7 +437,8 @@ An assistant turn ends in three stages, each reported by a different message. Th
         "name": "get_weather",
         "parameters": {
           "location": "Amsterdam"
-        }
+        },
+        "turnId": 4
       }
     }
     ```
@@ -549,25 +559,28 @@ An assistant turn ends in three stages, each reported by a different message. Th
       "chatHistory": {
         "messages": [
           {
-            "role": "user",
-            "delivery_status": "DELIVERY_COMPLETE",
+            "role": "USER",
+            "turnId": 3,
+            "deliveryStatus": "DELIVERY_COMPLETE",
             "ephemeral": false,
             "content": [
               {
-                "type": "input_audio",
-                "transcription": "What time is it?"
+                "inputAudio": {
+                  "transcription": "What time is it?"
+                }
               }
             ]
           },
           {
-            "role": "assistant",
-            "delivery_status": "DELIVERY_COMPLETE",
+            "role": "ASSISTANT",
+            "turnId": 4,
+            "deliveryStatus": "DELIVERY_COMPLETE",
             "ephemeral": false,
             "content": [
               {
-                "type": "text",
-                "text": "It's currently 3:45 PM.",
-                "tts_audio": null
+                "textContent": {
+                  "text": "It's currently 3:45 PM."
+                }
               }
             ]
           }
