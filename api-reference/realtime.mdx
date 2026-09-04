@@ -327,7 +327,7 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
 
 Messages sent from server to client, wrapped in `ClientBoundMessage`.
 
-Most of these messages carry a `turn_id` identifying the assistant turn they belong to. Turn IDs are 0-based, so `0` is a real turn rather than a missing value. `ResponseBegin`, `ResponseEnd`, `ModelSpeechProgress` and `InferenceComplete` always carry one while on `ModelTextFragment` and `ModelAudioChunk` it is optional, and when absent the message belongs to the current turn.
+Most of these messages carry a `turn_id` identifying the assistant turn they belong to. Turn IDs are 0-based, so `0` is a real turn rather than a missing value. `ResponseBegin`, `ResponseEnd`, `ModelSpeechProgress` and `InferenceComplete` always carry one, whereas `ModelTextFragment` and `ModelAudioChunk` carry an optional `turn_id`. When absent, the message belongs to the current turn.
 
 An assistant turn ends in three stages, each reported by a different message. They are not interchangeable.
 
