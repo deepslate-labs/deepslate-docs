@@ -248,7 +248,11 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `bytes_played` | uint64 | Number of audio bytes the client has played for `turn_id` |
-    | `turn_id` | uint32 | Which assistant turn these bytes belong to |
+    | `turn_id` | uint32? | Optional. Which assistant turn these bytes belong to |
+
+    <Note>
+    Omitting `turn_id` is not the same as sending `0`. Turn IDs are 0-based, so a report without one is read as coming from a client written before turn correlation existed, and the server applies it to the current response instead of the turn you meant.
+    </Note>
 
     Reports are honoured whenever they arrive. Setting `supports_playback_reporting` in `InitializeSessionRequest` is a hint about your intent, not a prerequisite.
 
@@ -323,6 +327,8 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
 
 Messages sent from server to client, wrapped in `ClientBoundMessage`.
 
+Most of these messages carry a `turn_id` identifying the assistant turn they belong to. Turn IDs are 0-based, so `0` is a real turn rather than a missing value. `ResponseBegin`, `ResponseEnd`, `ModelSpeechProgress` and `InferenceComplete` always carry one while on `ModelTextFragment` and `ModelAudioChunk` it is optional, and when absent the message belongs to the current turn.
+
 An assistant turn ends in three stages, each reported by a different message. They are not interchangeable.
 
 | Signal | Meaning |
@@ -352,7 +358,7 @@ An assistant turn ends in three stages, each reported by a different message. Th
     | Field | Type | Description |
     |-------|------|-------------|
     | `text` | string | Text content of this fragment |
-    | `turn_id` | uint32 | Session-local ID of the assistant turn this fragment belongs to |
+    | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn this fragment belongs to. When absent, attribute the fragment to the current turn. |
 
     ```json
     {
