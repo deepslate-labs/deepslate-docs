@@ -84,7 +84,7 @@ const initMessage = ServiceBoundMessage.create({
       systemPrompt: 'You are a helpful assistant.',
       temperature: 0.7
     },
-    supportsPlaybackReporting: true  // Hint that this client will report playback positions
+    supportsPlaybackReporting: true  // This client will report playback positions
   }
 });
 
@@ -93,7 +93,7 @@ const buffer = ServiceBoundMessage.encode(initMessage).finish();
 ws.send(buffer);
 ```
 
-Set `supportsPlaybackReporting: true` to signal that your client will report how many audio bytes it has played. The flag is a hint: the server honours those reports whenever they arrive, whether or not you set it. Reporting gives you accurate context truncation when the caller interrupts mid-response. See [Playback Position Reporting](#playback-position-reporting).
+Set `supportsPlaybackReporting: true` when your client will report how many audio bytes it has played. Reporting gives you accurate context truncation when the caller interrupts mid-response. See [Playback Position Reporting](#playback-position-reporting).
 
 <Tip>
 See the [API Reference](/api-reference/realtime) for all configuration options including TTS providers and tool definitions.
@@ -361,7 +361,7 @@ function onAudioBytesPlayed(turnId, byteCount) {
 }
 ```
 
-You do not need `supportsPlaybackReporting: true` to send these. The flag declares your intent; the server acts on the reports themselves.
+Set `supportsPlaybackReporting: true` in `InitializeSessionRequest` when you intend to send these.
 
 Without playback reporting, the server falls back to elapsed-time estimation for context truncation, which is less precise. The same estimate drives `audio_bytes_played` and the pacing of `ModelSpeechProgress`, so reporting real positions tightens that stream too.
 

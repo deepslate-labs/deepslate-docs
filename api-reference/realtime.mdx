@@ -39,7 +39,7 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | `vad_configuration` | VadConfiguration | Voice activity detection settings |
     | `inference_configuration` | InferenceConfiguration | System prompt and model behavior |
     | `tts_configuration` | TtsConfiguration | Optional TTS provider config (e.g., ElevenLabs) |
-    | `supports_playback_reporting` | bool | Hint that the client intends to send `PlaybackPositionReport` messages. Defaults to `false`. The server honours those reports whenever they arrive, whatever this is set to. |
+    | `supports_playback_reporting` | bool | Set to `true` when the client intends to send `PlaybackPositionReport` messages. Defaults to `false`. |
     | `enable_vad_frame_telemetry` | bool | When `true`, the server emits per-frame `VadAnalysisFrame` messages (~50 Hz). Off by default for cost and bandwidth reasons. `VadStateEvent` transitions are emitted either way. **Experimental.** |
     | `experiments` | map&lt;string, Value&gt; | Optional experiments to enable, mapping experiment name to a parameter value whose meaning the experiment defines. **No stability guarantees.** |
 
@@ -210,7 +210,7 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | `extra_instructions` | string | Optional extra instructions to guide the inference |
     | `flush_vad` | bool | When `true`, flush whatever the VAD pipeline has buffered and append it as a user audio message before triggering inference. Defaults to `false`. |
 
-    Use `flush_vad` to commit speech the VAD has not released yet, when the trigger comes from an external signal such as a push-to-talk button or a wake word rather than from natural end-of-speech detection. It is a no-op when the buffer is empty or the deployment runs no VAD pipeline.
+    Use `flush_vad` to commit speech the VAD has not released yet, when the trigger comes from an external signal such as a push-to-talk button or a wake word rather than from natural end-of-speech detection. It is a no-op when the buffer is empty.
 
     ```json
     {
@@ -248,13 +248,13 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `bytes_played` | uint64 | Number of audio bytes the client has played for `turn_id` |
-    | `turn_id` | uint32? | Optional. Which assistant turn these bytes belong to |
+    | `turn_id` | uint32? | Which assistant turn these bytes belong to. Should always be set. |
 
     <Note>
     Omitting `turn_id` is not the same as sending `0`. Turn IDs are 0-based, so a report without one is read as coming from a client written before turn correlation existed, and the server applies it to the current response instead of the turn you meant.
     </Note>
 
-    Reports are honoured whenever they arrive. Setting `supports_playback_reporting` in `InitializeSessionRequest` is a hint about your intent, not a prerequisite.
+    Set `supports_playback_reporting` in `InitializeSessionRequest` when you intend to send these reports.
 
     ```json
     {
