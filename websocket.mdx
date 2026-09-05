@@ -84,7 +84,7 @@ const initMessage = ServiceBoundMessage.create({
       systemPrompt: 'You are a helpful assistant.',
       temperature: 0.7
     },
-    supportsPlaybackReporting: true  // Enable precise playback position reporting
+    supportsPlaybackReporting: true  // This client will report playback positions
   }
 });
 
@@ -93,7 +93,7 @@ const buffer = ServiceBoundMessage.encode(initMessage).finish();
 ws.send(buffer);
 ```
 
-Set `supportsPlaybackReporting: true` if your client can report how many audio bytes have been played. This enables accurate context truncation when the user interrupts the model mid-response. See [Playback Position Reporting](#playback-position-reporting).
+Set `supportsPlaybackReporting: true` when your client will report how many audio bytes it has played. Reporting gives you accurate context truncation when the caller interrupts mid-response. See [Playback Position Reporting](#playback-position-reporting).
 
 <Tip>
 See the [API Reference](/api-reference/realtime) for all configuration options including TTS providers and tool definitions.
@@ -141,40 +141,65 @@ Audio format must exactly match your session configuration. For 16-bit signed PC
 The server sends `ClientBoundMessage` with one of several payload types.
 
 <Info>
-**Text-only vs. TTS mode**
+**Text and audio output**
 
-- **`ModelTextFragment`** — sent only when **no TTS provider is configured**. Contains streamed text tokens as the model generates them.
-- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains synthesized audio. The `transcript` field is optional and may be omitted entirely: Deepslate's hosted TTS does not include it; third-party providers (e.g., ElevenLabs) may include it for alignment data.
+- **`ModelTextFragment`** — emitted for every assistant turn, whether or not TTS is configured. Contains streamed text tokens as the model generates them. When TTS is configured, they arrive ahead of speech synthesis.
+- **`ModelAudioChunk`** — sent only when a **TTS provider is configured**. Contains the synthesized audio. The text that goes with it arrives on `ModelSpeechProgress`.
+- **`ModelSpeechProgress`** — emitted continuously while TTS audio plays. Reports which part of the turn's text has become audible.
 </Info>
 
+Most response messages carry a `turnId` identifying the assistant turn they belong to. Turn IDs are 0-based, so `0` is a real turn, not a missing value.
+
+`ResponseBegin`, `ResponseEnd`, `ModelSpeechProgress` and `InferenceComplete` always carry one. On `ModelTextFragment` and `ModelAudioChunk` it is optional. When it is absent, attribute the message to the turn opened by the most recent `ResponseBegin`.
+
 ```javascript
+// Turn opened by the most recent ResponseBegin
+let currentTurnId;
+
 ws.on('message', (data) => {
   const message = ClientBoundMessage.decode(new Uint8Array(data));
 
   if (message.responseBegin) {
     // Model has started responding
-    console.log('Response started');
+    currentTurnId = message.responseBegin.turnId;
+    console.log(`Response started (turn ${currentTurnId})`);
   }
 
   if (message.modelTextFragment) {
-    // Text-only mode: only received when no TTS provider is configured
-    process.stdout.write(message.modelTextFragment.text);
+    // Streamed text for this turn, emitted whether or not TTS is configured
+    const { text, turnId } = message.modelTextFragment;
+    appendTurnText(turnId ?? currentTurnId, text);
   }
 
   if (message.modelAudioChunk) {
     // TTS mode: received when a TTS provider is configured
+    const { turnId } = message.modelAudioChunk;
     const audioData = message.modelAudioChunk.audio.data;
-    // transcript is optional and may be absent — hosted TTS omits it;
-    // third-party providers (e.g., ElevenLabs) may include it for alignment data
-    const transcript = message.modelAudioChunk.transcript;
 
-    // Queue audio for playback
-    playAudio(audioData);
+    // Queue audio for playback, tagged with the turn it belongs to
+    playAudio(audioData, turnId ?? currentTurnId);
+  }
+
+  if (message.modelSpeechProgress) {
+    // Text the caller has actually heard, paced to playback
+    const { turnId, text } = message.modelSpeechProgress;
+    appendSpokenText(turnId, text);
+  }
+
+  if (message.turnSnapshot) {
+    // Authoritative turn content
+    const { message: turn, isFinal } = message.turnSnapshot;
+    storeTurn(turn.turnId, turn, isFinal);
+  }
+
+  if (message.inferenceComplete) {
+    // LLM finished generating; TTS may still be synthesizing
+    console.log(`Generation done (turn ${message.inferenceComplete.turnId})`);
   }
 
   if (message.responseEnd) {
-    // Model has finished responding
-    console.log('Response ended');
+    // No more audio for this turn; content can still change
+    console.log(`Audio ended (turn ${message.responseEnd.turnId})`);
   }
 
   if (message.playbackClearBuffer) {
@@ -203,8 +228,8 @@ When the user starts speaking, the server sends `PlaybackClearBuffer` proactivel
 ```javascript
 let audioQueue = [];
 
-function playAudio(data) {
-  audioQueue.push(data);
+function playAudio(data, turnId) {
+  audioQueue.push({ data, turnId });
   // Process queue...
 }
 
@@ -316,24 +341,44 @@ At least one of `prompt` or `instructions` must be provided. If `prompt` is abse
 
 ## Playback Position Reporting
 
-If you declared `supportsPlaybackReporting: true` during session initialization, send `PlaybackPositionReport` messages regularly as audio plays. This gives the server accurate data to truncate the LLM context to exactly what the user heard when they interrupt.
+Send `PlaybackPositionReport` messages regularly as audio plays. This gives the server accurate data to truncate the LLM context to exactly what the caller heard when they interrupt.
+
+Counts are per turn, not per session. Use the `turnId` from the `ModelAudioChunk` the bytes came from, falling back to the current turn when the chunk omits it, and keep a separate total for each turn.
+
+`turnId` on the report is itself optional, and omitting it is not the same as sending `0`. Turn IDs are 0-based, so a report without one is read as coming from a client that predates turn correlation, and the server applies it to the current response instead. Always set it.
 
 ```javascript
-let bytesPlayed = 0;
+const playedByTurn = new Map(); // turnId -> bytes played for that turn
 
-function onAudioBytesPlayed(byteCount) {
-  bytesPlayed += byteCount;
+function onAudioBytesPlayed(turnId, byteCount) {
+  const bytesPlayed = (playedByTurn.get(turnId) ?? 0) + byteCount;
+  playedByTurn.set(turnId, bytesPlayed);
 
   const message = ServiceBoundMessage.create({
-    playbackPositionReport: {
-      bytesPlayed
-    }
+    playbackPositionReport: { bytesPlayed, turnId }
   });
   ws.send(ServiceBoundMessage.encode(message).finish());
 }
 ```
 
-Without playback reporting, the server falls back to elapsed-time estimation for context truncation, which is less precise.
+Set `supportsPlaybackReporting: true` in `InitializeSessionRequest` when you intend to send these.
+
+Without playback reporting, the server falls back to elapsed-time estimation for context truncation, which is less precise. The same estimate drives `audio_bytes_played` and the pacing of `ModelSpeechProgress`, so reporting real positions tightens that stream too.
+
+## Track Turn Content
+
+`TurnSnapshot` carries the server's authoritative view of a single turn.
+
+```javascript
+const turns = new Map();
+
+function storeTurn(turnId, turn, isFinal) {
+  turns.set(turnId, { turn, isFinal });
+}
+```
+
+- **Snapshots are not guaranteed to be monotonic.** A turn can produce several, and content can be rolled back.
+- **`is_final` means immutable, not permanent.** Once a snapshot arrives with `isFinal: true`, that turn's content will not change again and no further snapshots for it will arrive. The turn can still leave the model's context later through truncation, which `ContextTruncated` reports separately.
 
 ## Export Chat History
 
@@ -444,7 +489,7 @@ Every `ToolCallRequest` **must** receive a `ToolCallResponse`, even if the tool 
 
 ## Complete Example
 
-A Node.js client with microphone input and speaker output:
+A Node.js client with microphone input. It configures no TTS provider, so the server returns text rather than speech. The client does not play audio and therefore does not report playback positions; see [Playback Position Reporting](#playback-position-reporting) for that side.
 
 ```bash
 npm install ws protobufjs audify
@@ -472,7 +517,9 @@ async function main() {
 
   // State
   let packetId = 0;
-  let playbackQueue = [];
+  const spokenByTurn = new Map(); // turnId -> text the caller has heard
+  const turns = new Map();        // turnId -> authoritative turn content
+  let currentTurnId;              // turn opened by the most recent ResponseBegin
 
   // Connect
   const ws = new WebSocket('wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/realtime', {
@@ -502,7 +549,7 @@ async function main() {
         inferenceConfiguration: {
           systemPrompt: 'You are a friendly and helpful assistant.'
         },
-        supportsPlaybackReporting: true
+        supportsPlaybackReporting: false
       }
     });
 
@@ -544,26 +591,42 @@ async function main() {
     const msg = ClientBoundMessage.decode(new Uint8Array(data));
 
     if (msg.responseBegin) {
-      console.log('\n[Response started]');
+      currentTurnId = msg.responseBegin.turnId;
+      console.log(`\n[Response started: turn ${currentTurnId}]`);
     }
 
     if (msg.modelTextFragment) {
-      // Only received in text-only mode (no TTS configured)
+      // Emitted for every turn, whether or not TTS is configured
       process.stdout.write(msg.modelTextFragment.text);
     }
 
     if (msg.modelAudioChunk) {
-      // Only received in TTS mode; transcript is optional and may be absent depending on provider
-      playbackQueue.push(Buffer.from(msg.modelAudioChunk.audio.data));
+      // Not reached: this example configures no TTS provider
+    }
+
+    if (msg.modelSpeechProgress) {
+      // Text paced to playback: what the caller has heard so far
+      const { turnId, text } = msg.modelSpeechProgress;
+      spokenByTurn.set(turnId, (spokenByTurn.get(turnId) ?? '') + text);
+    }
+
+    if (msg.turnSnapshot) {
+      // Authoritative turn content
+      const { message: turn, isFinal } = msg.turnSnapshot;
+      turns.set(turn.turnId, turn);
+      if (isFinal) console.log(`\n[Turn ${turn.turnId} finalized]`);
+    }
+
+    if (msg.inferenceComplete) {
+      console.log(`\n[Generation done: turn ${msg.inferenceComplete.turnId}]`);
     }
 
     if (msg.responseEnd) {
-      console.log('\n[Response ended]');
+      console.log(`\n[Response ended: turn ${msg.responseEnd.turnId}]`);
     }
 
     if (msg.playbackClearBuffer) {
-      // User started speaking - clear queued audio
-      playbackQueue = [];
+      // User started speaking. A client with playback would stop it here.
     }
 
     if (msg.toolCallRequest) {
