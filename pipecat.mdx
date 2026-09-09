@@ -177,6 +177,39 @@ if __name__ == "__main__":
     ```
   </Accordion>
 
+  <Accordion title="HostedVoiceCloneConfig">
+    Clone a voice on the fly from a raw audio sample, with no pre-uploaded voice ID required. The sample is sent as part of the session initialization request. Pass an instance to `DeepslateRealtimeLLMService(tts_config=...)` to enable PCM audio output.
+
+    | Parameter | Type | Default | Description |
+    |-----------|------|---------|-------------|
+    | `audio_data` | `bytes` | required | Raw PCM audio data of the voice sample (10 to 15 seconds of speech) |
+    | `audio_sample_rate` | `int` | required | Sample rate of the audio sample in Hz |
+    | `audio_channels` | `int` | required | Number of audio channels in the sample |
+    | `ref_text` | `str` | required | Exact transcript of the voice sample, including disfluencies and false starts |
+    | `mode` | `HostedTtsMode` | `HostedTtsMode.HIGH_QUALITY` | Quality/latency tradeoff for synthesis |
+
+    The `mode` parameter accepts the same `HostedTtsMode` values as `HostedTtsConfig` above.
+
+    ```python
+    from pathlib import Path
+    from deepslate.pipecat import HostedVoiceCloneConfig, DeepslateRealtimeLLMService
+
+    llm = DeepslateRealtimeLLMService(
+        options=opts,
+        tts_config=HostedVoiceCloneConfig(
+            audio_data=Path("voice_sample.pcm").read_bytes(),
+            audio_sample_rate=24000,
+            audio_channels=1,
+            ref_text="Hi there, um, thanks for calling. How can I help you today?",
+        ),
+    )
+    ```
+
+    <Tip>
+    For best results, provide a clean 10 to 15 second sample and a `ref_text` that transcribes the audio exactly, including filler words and false starts. An accurate transcript improves the quality of the cloned voice.
+    </Tip>
+  </Accordion>
+
   <Accordion title="ElevenLabsTtsConfig">
     Configure server-side text-to-speech with ElevenLabs via Deepslate. Pass an instance to `DeepslateRealtimeLLMService(tts_config=...)` to enable PCM audio output.
 
@@ -240,6 +273,9 @@ if __name__ == "__main__":
   </Card>
   <Card title="Low Latency Mode" icon="bolt">
     Hosted voice TTS supports a low latency mode for fastest possible response at the cost of some output quality
+  </Card>
+  <Card title="Voice Cloning" icon="clone">
+    Use a pre-cloned hosted voice or clone one on the fly from a raw audio sample, with no external TTS credentials
   </Card>
   <Card title="Direct Speech" icon="comment-dots">
     Speak text directly via TTS without routing through the LLM
