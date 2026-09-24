@@ -44,6 +44,7 @@ Set up your credentials as environment variables:
 | `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
 | `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
 | `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `DEEPSLATE_MODEL` | No | Opal model to run on. Defaults to the platform default model |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
 | `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
 | `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
@@ -93,12 +94,13 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     | `organizationId` | `string` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
     | `apiKey` | `string` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
     | `baseUrl` | `string` | `"https://app.deepslate.eu"` | Base URL for the Deepslate API |
+    | `model` | `DeepslateModelId` | env: `DEEPSLATE_MODEL`, else platform default | Opal model to run on, see [Model Selection](#model-selection) |
     | `systemPrompt` | `string` | `"You are a helpful assistant."` | Default system prompt |
     | `temperature` | `number` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generateReplyTimeout` | `number` | `30.0` | Timeout in seconds for `generateReply` (0 = no timeout) |
     | `vad` | `VadConfig` | defaults | Voice activity detection tuning (see below) |
     | `ttsConfig` | `TtsConfig` | `undefined` | TTS configuration (enables audio output). Use a hosted or ElevenLabs config (see below). |
-    | `wsUrl` | `string` | `undefined` | Direct WebSocket URL override — useful for local development |
+    | `wsUrl` | `string` | `undefined` | Direct WebSocket URL override (takes precedence over `baseUrl` and `model`) — useful for local development |
   </Accordion>
 
   <Accordion title="VAD Configuration">
@@ -218,6 +220,25 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     </Tip>
   </Accordion>
 </AccordionGroup>
+
+## Model Selection
+
+Connections use the platform's default Opal model unless you pin one with `model`:
+
+```ts
+import { DeepslateModel, RealtimeModel } from "@deepslate-labs/livekit";
+
+// opal-v2.1 is the current platform default.
+// See Available Models for other model ids.
+const llm = new RealtimeModel({ model: DeepslateModel.OPAL_V2_1 });
+
+// Equivalent, using the model id as a plain string:
+// const llm = new RealtimeModel({ model: "opal-v2.1" });
+```
+
+`model` is typed `DeepslateModelId`, which also accepts any model id string, and falls back to the `DEEPSLATE_MODEL` environment variable when not passed. The model is fixed for the lifetime of the connection. If your organization has no access to the requested model, the session fails immediately (no reconnection attempts) with a non-recoverable `realtime_model_error` whose message names the model.
+
+See [Available Models](/opal#available-models) for the current list and how to request access to preview models.
 
 ## Features
 

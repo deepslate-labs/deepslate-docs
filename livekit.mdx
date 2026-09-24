@@ -36,6 +36,7 @@ Set up your credentials as environment variables:
 | `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
 | `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
 | `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `DEEPSLATE_MODEL` | No | Opal model to run on. Defaults to the platform default model |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
 | `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
 | `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
@@ -91,10 +92,11 @@ if __name__ == "__main__":
     | `organization_id` | `str \| None` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
     | `api_key` | `str \| None` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
     | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
+    | `model` | `DeepslateModel \| str \| None` | env: `DEEPSLATE_MODEL`, else platform default | Opal model to run on, see [Model Selection](#model-selection) |
     | `system_prompt` | `str` | `"You are a helpful assistant."` | Default system prompt |
     | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for `generate_reply` (0 = no timeout) |
-    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
+    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override (takes precedence over `base_url` and `model`) — useful for local development |
     | `tts_config` | `ElevenLabsTtsConfig \| HostedTtsConfig \| None` | `None` | TTS configuration (enables audio output). Use `ElevenLabsTtsConfig` for ElevenLabs synthesis or `HostedTtsConfig` for Deepslate-hosted cloned voices. |
     | `http_session` | `aiohttp.ClientSession \| None` | `None` | Shared aiohttp session |
     | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
@@ -194,6 +196,25 @@ if __name__ == "__main__":
     </Tip>
   </Accordion>
 </AccordionGroup>
+
+## Model Selection
+
+Connections use the platform's default Opal model unless you pin one with `model`:
+
+```python
+from deepslate.livekit import DeepslateModel, RealtimeModel
+
+# opal-v2.1 is the current platform default.
+# See Available Models for other model ids.
+llm = RealtimeModel(model=DeepslateModel.OPAL_V2_1)
+
+# Equivalent, using the model id as a plain string:
+# llm = RealtimeModel(model="opal-v2.1")
+```
+
+`model` also accepts any model id as a plain string, and falls back to the `DEEPSLATE_MODEL` environment variable when not passed. The model is fixed for the lifetime of the connection. If your organization has no access to the requested model, the session fails immediately (no reconnection attempts) with a non-recoverable `realtime_model_error` whose message names the model.
+
+See [Available Models](/opal#available-models) for the current list and how to request access to preview models.
 
 ## Features
 

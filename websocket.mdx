@@ -50,6 +50,10 @@ ws.on('close', (code, reason) => {
 });
 ```
 
+<Tip>
+To run on a specific Opal model, append its id to the URL. Without it you get the platform default. See [Available Models](/opal#available-models).
+</Tip>
+
 ## Initialize Session
 
 The first message must be an `InitializeSessionRequest` to configure audio format, VAD, and model behavior:

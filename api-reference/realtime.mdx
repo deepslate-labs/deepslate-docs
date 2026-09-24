@@ -18,9 +18,12 @@ Need VAD-only without LLM inference? See the [VAD WebSocket Protocol](/api-refer
 
 ```
 wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/realtime
+wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/realtime/{model}
 ```
 
 Authentication via Bearer token in the connection headers.
+
+The optional `{model}` path segment selects the Opal model for the connection. Without it, the platform default is used. Requesting a model that is not enabled for your organization rejects the WebSocket handshake. See [Available Models](/opal#available-models).
 
 ---
 
