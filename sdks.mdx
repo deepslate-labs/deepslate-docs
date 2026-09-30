@@ -119,12 +119,12 @@ llm = DeepslateRealtimeLLMService(
 ```
 </CodeGroup>
 
-- `DeepslateModel` lists the known model ids. `model` also accepts any model id as a plain string, so a newly released model works without updating the SDK.
+- `DeepslateModel` lists the released model ids. `model` also accepts any model id as a plain string, which is how preview models and models newer than your SDK are selected.
 - An explicit `model` argument takes precedence over `DEEPSLATE_MODEL`. When neither is set, the platform default is used.
-- The model is fixed for the lifetime of a connection. Create a new `RealtimeModel` or `DeepslateOptions` to switch.
-- If your organization has no access to the requested model, the SDK does not retry: the connection fails immediately with a `HandshakeRejectedError` whose message names the model.
+- The model is fixed for the lifetime of a connection. To switch models, create a new `RealtimeModel` or `DeepslateOptions` and start a new connection with that configuration.
+- If your organization has no access to the requested model, the SDK does not retry. LiveKit fails with a non-recoverable `realtime_model_error`, Pipecat pushes an `ErrorFrame`, and custom integrations on the core package receive a `HandshakeRejectedError`. In every case the message names the model and the rejection status.
 
-See [Available Models](/opal#available-models) for the current list and how to request access to preview models.
+See [Available Models](opal#available-models) for the current list and how to request access to preview models.
 
 ## Core packages
 
