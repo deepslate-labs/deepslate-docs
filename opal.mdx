@@ -121,6 +121,21 @@ Opal supports two output modes depending on your use case:
   </Accordion>
 </AccordionGroup>
 
+## Available Models
+
+Opal is released as versioned models. Every realtime connection runs on exactly one of them.
+
+| Model | Status | Notes |
+|-------|--------|-------|
+| `opal-v2.1` | Generally available | The platform default. Used whenever no model is specified. |
+| `opal-v3.0-preview` | Preview | Must be enabled for your organization. Contact [Deepslate](mailto:info@deepslate.eu) to request access. |
+
+You select a model in one of two places: with the `model` option in the [SDKs](sdks#model-selection), or in the Deepslate platform under **Speech model** when creating or editing a voice model. If you do not specify a model, the connection uses the current platform default.
+
+<Note>
+Preview models are made available to individual organizations ahead of general release. Requesting a model your organization has no access to rejects the connection.
+</Note>
+
 ## Integration with Deepslate Realtime
 
 Opal powers both **Assistants** (inbound) and **Agents** (outbound) on the Deepslate platform. When you configure an assistant or agent, you're defining the behavior, knowledge, and goals — Opal handles the real-time voice interaction.

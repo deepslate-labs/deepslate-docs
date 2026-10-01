@@ -32,6 +32,7 @@ Set up your credentials as environment variables:
 | `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
 | `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
 | `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `DEEPSLATE_MODEL` | No | Opal model to run on. Defaults to the platform default model |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
 | `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
 | `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
@@ -111,10 +112,11 @@ if __name__ == "__main__":
     | `organization_id` | `str` | env: `DEEPSLATE_ORGANIZATION_ID` | Your Deepslate organization ID |
     | `api_key` | `str` | env: `DEEPSLATE_API_KEY` | Your Deepslate API key |
     | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
+    | `model` | `DeepslateModel \| str \| None` | env: `DEEPSLATE_MODEL`, else platform default | Opal model to run on, see [Model Selection](#model-selection) |
     | `system_prompt` | `str` | `"You are a helpful assistant."` | System prompt for the model |
     | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds waiting for a model reply (0 = no timeout) |
-    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
+    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override (takes precedence over `base_url` and `model`) — useful for local development |
     | `max_retries` | `int` | `3` | Maximum reconnection attempts before emitting an `ErrorFrame` |
   </Accordion>
 
@@ -222,6 +224,29 @@ if __name__ == "__main__":
     </Tip>
   </Accordion>
 </AccordionGroup>
+
+## Model Selection
+
+Connections use the platform's default Opal model unless you pin one with `model` in `DeepslateOptions`:
+
+```python
+from deepslate.pipecat import DeepslateModel, DeepslateOptions, DeepslateRealtimeLLMService
+
+# opal-v2.1 is the current platform default.
+# See Available Models for other model ids.
+llm = DeepslateRealtimeLLMService(
+    options=DeepslateOptions.from_env(model=DeepslateModel.OPAL_V2_1),
+)
+
+# Equivalent, using the model id as a plain string:
+# llm = DeepslateRealtimeLLMService(
+#     options=DeepslateOptions.from_env(model="opal-v2.1"),
+# )
+```
+
+If you set `ws_url`, it takes precedence over `model`.
+
+See [Available Models](opal#available-models) for the current list and how to request access to preview models.
 
 ## Features
 
