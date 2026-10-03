@@ -10,19 +10,27 @@ This page explains which data Deepslate stores when you use the platform, how yo
 
 By default, Deepslate stores call data so you can review and analyze your calls in the Deepslate platform, for example to check transcripts, debug a conversation, or improve your system prompt.
 
-| Data | Stored by default | Stored with ZDR |
-|------|:-----------------:|:---------------:|
-| Session metadata (start and end time, duration, model) | <Icon icon="check" /> | <Icon icon="check" /> |
-| Usage records (feature types, unit counts) | <Icon icon="check" /> | <Icon icon="check" /> |
-| Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs) | <Icon icon="check" /> | <Icon icon="check" /> |
-| Transcripts and chat history | <Icon icon="check" /> | <Icon icon="xmark" /> |
-| Tool calls (tool names, arguments, results) | <Icon icon="check" /> | <Icon icon="xmark" /> |
-| System prompts | <Icon icon="check" /> | <Icon icon="xmark" /> |
-| Audio recordings | <Icon icon="check" /> (can be turned off) | <Icon icon="xmark" /> |
-| Client IP address | <Icon icon="check" /> | <Icon icon="xmark" /> |
-| System prompts flagged by automated abuse screening¹ | <Icon icon="check" /> | <Icon icon="check" /> |
+<CardGroup cols={2}>
+  <Card title="Always stored" icon="database">
+    Needed for billing, performance monitoring, and abuse prevention. Also kept with ZDR.
 
-¹ System prompts are screened automatically for violations of our usage policies. A flagged prompt is kept until it has been reviewed. If the flag turns out to be wrong, the prompt is deleted. If a violation is confirmed, the prompt is retained.
+    - Session metadata (start and end time, duration, model)
+    - Usage records
+    - Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs)
+    - Flagged system prompts
+  </Card>
+  <Card title="Not stored with ZDR" icon="shield-halved">
+    Stored by default so you can review your calls in the platform. Never stored with ZDR.
+
+    - Transcripts and chat history
+    - Tool calls (names, arguments, results)
+    - System prompts
+    - Audio recordings (can be turned off)
+    - Client IP address
+  </Card>
+</CardGroup>
+
+System prompts are screened automatically for violations of our usage policies. A flagged prompt is kept until it has been reviewed. If the flag turns out to be wrong, the prompt is deleted. If a violation is confirmed, the prompt is retained.
 
 <Info>
 **Your data is not used for model training without your consent.** Deepslate does not train its models on your call data unless you have explicitly agreed to it.
@@ -50,7 +58,7 @@ Zero Data Retention is an **Enterprise feature** and applies to the **Realtime A
 
 ### What is still stored
 
-To operate and bill the service, Deepslate keeps the data marked as stored with ZDR in the [overview](#overview). This data contains no audio, transcripts, or chat history. It is limited to technical values such as timestamps, durations (including audio duration), generation times, and IDs, plus system prompts flagged by abuse screening as described above.
+To operate and bill the service, Deepslate keeps only the data listed under **Always stored** in the [overview](#overview). This data contains no audio, transcripts, or chat history. It is limited to technical values such as timestamps, durations (including audio duration), generation times, and IDs, plus system prompts flagged by abuse screening as described above.
 
 ### Limitations
 
