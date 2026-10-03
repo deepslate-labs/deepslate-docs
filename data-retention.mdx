@@ -4,15 +4,6 @@ description: 'What Deepslate stores about your sessions, how long it is kept, an
 icon: 'shield-halved'
 ---
 
-{/*
-  INTERNAL REVIEW NOTES (MDX comments, not rendered). Resolve before publishing:
-  - Publish only after PLT-448 (Implement zero data retention) is deployed.
-  - Confirm with engineering that no conversation content reaches application logs, error tracking or monitoring tools for ZDR sessions.
-  - Enablement steps and the `X-Deepslate-Data-Retention` header are intentionally not documented publicly for now.
-  - Align wording with the DPA (AVV) and the ZDR contract clause.
-  - Revisit "Retention periods and deletion" once PLT-312 (data retention settings) is merged.
-*/}
-
 This page explains which data Deepslate stores when you use the platform, how you control it, and how **Zero Data Retention (ZDR)** works for sessions on the Realtime API.
 
 ## Standard data handling
