@@ -6,17 +6,23 @@ icon: 'shield-halved'
 
 This page explains which data Deepslate stores when you use the platform, how you control it, and how **Zero Data Retention (ZDR)** works for sessions on the Realtime API.
 
-## Standard data handling
+## Overview
 
 By default, Deepslate stores call data so you can review and analyze your calls in the Deepslate platform, for example to check transcripts, debug a conversation, or improve your system prompt.
 
-| Data | Stored by default | Purpose |
-|------|-------------------|---------|
-| Session metadata (start and end time, duration, model) | Yes | Billing, usage reporting, call overview |
-| Technical telemetry (latency, generation time, VAD events) | Yes | Performance monitoring and debugging |
-| Conversation content (transcripts, chat history, tool calls) | Yes | Call review and analysis in the platform |
-| Audio recordings | Configurable | Call review in the platform |
-| System prompts flagged by automated abuse screening | Only if flagged, until reviewed | Abuse prevention |
+| Data | Stored by default | Can be turned off | Stored with ZDR |
+|------|:-----------------:|:-----------------:|:---------------:|
+| Session metadata (start and end time, duration, model) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
+| Usage records (feature types, unit counts) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
+| Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
+| Transcripts and chat history | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
+| Tool calls (tool names, arguments, results) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
+| System prompts | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
+| Audio recordings | <Icon icon="check" /> | <Icon icon="check" /> | <Icon icon="xmark" /> |
+| Client IP address | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
+| System prompts flagged by automated abuse screening¹ | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
+
+¹ System prompts are screened automatically for violations of our usage policies. A flagged prompt is kept until it has been reviewed. If the flag turns out to be wrong, the prompt is deleted. If a violation is confirmed, the prompt is retained.
 
 <Info>
 **Your data is not used for model training without your consent.** Deepslate does not train its models on your call data unless you have explicitly agreed to it.
@@ -24,13 +30,11 @@ By default, Deepslate stores call data so you can review and analyze your calls 
 
 ### Retention periods and deletion
 
-To have stored call data deleted, contact us at [info@deepslate.eu](mailto:info@deepslate.eu). When your contract ends, your data is deleted in accordance with your Data Processing Agreement (DPA).
-
-If you need conversation content to never be stored in the first place, use Zero Data Retention.
+To have stored call data deleted, contact us at [support@deepslate.eu](mailto:support@deepslate.eu). When your contract ends, your data is deleted in accordance with your Data Processing Agreement (DPA).
 
 ## Zero Data Retention
 
-Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, conversation content such as audio and transcripts is processed exclusively in volatile memory, only for as long as needed to run the session in real time, and is **never persisted** by Deepslate.
+Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, audio, transcripts, chat history, system prompts, and tool call content are processed exclusively in volatile memory, only for as long as needed to run the session in real time, and are **never persisted** by Deepslate.
 
 <Note>
 Zero Data Retention is an **Enterprise feature** and applies to the **Realtime API only**.
@@ -44,26 +48,9 @@ Zero Data Retention is an **Enterprise feature** and applies to the **Realtime A
 | SDKs and plugins (LiveKit, Pipecat) | Yes, as they connect through the Realtime API |
 | Assistants and Agents (inbound and outbound phone calls via the platform) | No |
 
-### What is never stored
-
-When ZDR is active for a session, Deepslate does not store:
-
-- Audio (neither the caller's nor the model's)
-- Transcripts and chat history
-- System prompts and inference configuration content (except as described for abuse screening below)
-- Tool names, tool arguments, and tool results
-- The client IP address
-
 ### What is still stored
 
-To operate and bill the service, Deepslate keeps a minimal set of data that contains **no audio, transcripts, or chat history** and nothing derived from them:
-
-| Data | Examples | Purpose |
-|------|----------|---------|
-| Session metadata | Session ID, state, start and end time, duration, model | Billing and usage reporting |
-| Usage records | Feature types and unit counts | Billing |
-| Technical telemetry | Event types and timestamps, turn IDs, tool call IDs, generation time, gaps between turns, audio duration, realtime factor | Performance monitoring |
-| Flagged system prompts | System prompts flagged by automated abuse screening, kept only until reviewed | Abuse prevention |
+To operate and bill the service, Deepslate keeps the data marked as stored with ZDR in the [overview](#overview). This data contains no audio, transcripts, or chat history. It is limited to technical values such as timestamps, durations (including audio duration), generation times, and IDs, plus system prompts flagged by abuse screening as described above.
 
 ### Limitations
 
