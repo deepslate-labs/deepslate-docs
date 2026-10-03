@@ -10,17 +10,17 @@ This page explains which data Deepslate stores when you use the platform, how yo
 
 By default, Deepslate stores call data so you can review and analyze your calls in the Deepslate platform, for example to check transcripts, debug a conversation, or improve your system prompt.
 
-| Data | Stored by default | Can be turned off | Stored with ZDR |
-|------|:-----------------:|:-----------------:|:---------------:|
-| Session metadata (start and end time, duration, model) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
-| Usage records (feature types, unit counts) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
-| Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
-| Transcripts and chat history | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
-| Tool calls (tool names, arguments, results) | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
-| System prompts | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
-| Audio recordings | <Icon icon="check" /> | <Icon icon="check" /> | <Icon icon="xmark" /> |
-| Client IP address | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="xmark" /> |
-| System prompts flagged by automated abuse screening¹ | <Icon icon="check" /> | <Icon icon="xmark" /> | <Icon icon="check" /> |
+| Data | Stored by default | Stored with ZDR |
+|------|:-----------------:|:---------------:|
+| Session metadata (start and end time, duration, model) | <Icon icon="check" /> | <Icon icon="check" /> |
+| Usage records (feature types, unit counts) | <Icon icon="check" /> | <Icon icon="check" /> |
+| Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs) | <Icon icon="check" /> | <Icon icon="check" /> |
+| Transcripts and chat history | <Icon icon="check" /> | <Icon icon="xmark" /> |
+| Tool calls (tool names, arguments, results) | <Icon icon="check" /> | <Icon icon="xmark" /> |
+| System prompts | <Icon icon="check" /> | <Icon icon="xmark" /> |
+| Audio recordings | <Icon icon="check" /> (can be turned off) | <Icon icon="xmark" /> |
+| Client IP address | <Icon icon="check" /> | <Icon icon="xmark" /> |
+| System prompts flagged by automated abuse screening¹ | <Icon icon="check" /> | <Icon icon="check" /> |
 
 ¹ System prompts are screened automatically for violations of our usage policies. A flagged prompt is kept until it has been reviewed. If the flag turns out to be wrong, the prompt is deleted. If a violation is confirmed, the prompt is retained.
 
