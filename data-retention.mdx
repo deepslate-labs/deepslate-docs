@@ -1,0 +1,81 @@
+---
+title: 'Data Retention'
+description: 'What Deepslate stores about your sessions, how long it is kept, and how Zero Data Retention works for the Realtime API'
+icon: 'shield-halved'
+---
+
+This page explains which data Deepslate stores when you use the platform, how you control it, and how **Zero Data Retention (ZDR)** works for sessions on the Realtime API.
+
+## Overview
+
+By default, Deepslate stores call data so you can review and analyze your calls in the Deepslate platform, for example to check transcripts, debug a conversation, or improve your system prompt.
+
+<CardGroup cols={2}>
+  <Card title="Always stored" icon="database">
+    Needed for billing, performance monitoring, and abuse prevention. Also kept with ZDR.
+
+    - Session metadata (start and end time, duration, model)
+    - Usage records
+    - Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs)
+    - Flagged system prompts
+  </Card>
+  <Card title="Not stored with ZDR" icon="shield-halved">
+    Stored by default so you can review your calls in the platform. Never stored with ZDR.
+
+    - Transcripts and chat history
+    - Tool calls (names, arguments, results)
+    - System prompts
+    - Audio recordings (can be turned off)
+    - Client IP address
+  </Card>
+</CardGroup>
+
+System prompts are screened automatically for violations of our usage policies. A flagged prompt is kept until it has been reviewed. If the flag turns out to be wrong, the prompt is deleted. If a violation is confirmed, the prompt is retained.
+
+<Info>
+**Your data is not used for model training without your consent.** Deepslate does not train its models on your call data unless you have explicitly agreed to it.
+</Info>
+
+### Retention periods and deletion
+
+To have stored call data deleted, contact us at [support@deepslate.eu](mailto:support@deepslate.eu). When your contract ends, your data is deleted in accordance with your Data Processing Agreement (DPA).
+
+## Zero Data Retention
+
+Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, audio, transcripts, chat history, system prompts, and tool call content are processed exclusively in volatile memory, only for as long as needed to run the session in real time, and are **never persisted** by Deepslate.
+
+<Note>
+Zero Data Retention is an **Enterprise feature** and applies to the **Realtime API only**.
+</Note>
+
+### Availability
+
+| | Covered by ZDR |
+|---|---|
+| Realtime API (WebSocket) | Yes |
+| SDKs and plugins (LiveKit, Pipecat) | Yes, as they connect through the Realtime API |
+| Assistants and Agents (inbound and outbound phone calls via the platform) | No |
+
+### What is still stored
+
+To operate and bill the service, Deepslate keeps only the data listed under **Always stored** in the [overview](#overview). This data contains no audio, transcripts, or chat history. It is limited to technical values such as timestamps, durations (including audio duration), generation times, and IDs, plus system prompts flagged by abuse screening as described above.
+
+### Limitations
+
+<AccordionGroup>
+  <Accordion title="Limited support and debugging" icon="life-ring">
+    Because Deepslate does not have the conversation content of ZDR sessions, we cannot inspect them when you report an issue. Troubleshooting is limited to the technical telemetry listed above. To help us debug, include the session ID and a description of what happened.
+  </Accordion>
+
+  <Accordion title="No call review in the platform" icon="eye-slash">
+    ZDR sessions do not show transcripts, chat history, or recordings in the Deepslate platform. Tool calls appear with a generic label instead of the tool name.
+  </Accordion>
+
+  <Accordion title="Keeping your own records" icon="floppy-disk">
+    If you need a record of the conversation, store it on your side. Your client can request the full conversation at any time during the session with [`ExportChatHistoryRequest`](/api-reference/realtime). The SDKs and plugins expose the same capability as chat history export.
+  </Accordion>
+</AccordionGroup>
+
+## Questions
+
+For questions about data processing or our DPA, contact us at [info@deepslate.eu](mailto:info@deepslate.eu).
