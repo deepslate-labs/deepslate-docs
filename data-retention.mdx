@@ -8,7 +8,7 @@ icon: 'shield-halved'
   INTERNAL REVIEW NOTES (MDX comments, not rendered). Resolve before publishing:
   - Publish only after PLT-448 (Implement zero data retention) is deployed.
   - Confirm with engineering that no conversation content reaches application logs, error tracking or monitoring tools for ZDR sessions.
-  - Decide and document what happens when an organization without ZDR enabled sends `X-Deepslate-Data-Retention: none` (see "Per-session override").
+  - Enablement steps and the `X-Deepslate-Data-Retention` header are intentionally not documented publicly for now.
   - Align wording with the DPA (AVV) and the ZDR contract clause.
   - Revisit "Retention periods and deletion" once PLT-312 (data retention settings) is merged.
 */}
@@ -25,6 +25,7 @@ By default, Deepslate stores call data so you can review and analyze your calls 
 | Technical telemetry (latency, generation time, VAD events) | Yes | Performance monitoring and debugging |
 | Conversation content (transcripts, chat history, tool calls) | Yes | Call review and analysis in the platform |
 | Audio recordings | Configurable | Call review in the platform |
+| System prompts flagged by automated abuse screening | Only if flagged, until reviewed | Abuse prevention |
 
 <Info>
 **Your data is not used for model training without your consent.** Deepslate does not train its models on your call data unless you have explicitly agreed to it.
@@ -38,10 +39,10 @@ If you need conversation content to never be stored in the first place, use Zero
 
 ## Zero Data Retention
 
-Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, conversation content is processed exclusively in volatile memory, only for as long as needed to run the session in real time, and is **never persisted** by Deepslate.
+Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, conversation content such as audio and transcripts is processed exclusively in volatile memory, only for as long as needed to run the session in real time, and is **never persisted** by Deepslate.
 
 <Note>
-Zero Data Retention is an **Enterprise feature** and applies to the **Realtime API only**. To enable it for your organization, [contact us](mailto:info@deepslate.eu).
+Zero Data Retention is an **Enterprise feature** and applies to the **Realtime API only**.
 </Note>
 
 ### Availability
@@ -58,58 +59,20 @@ When ZDR is active for a session, Deepslate does not store:
 
 - Audio (neither the caller's nor the model's)
 - Transcripts and chat history
-- System prompts and inference configuration content
+- System prompts and inference configuration content (except as described for abuse screening below)
 - Tool names, tool arguments, and tool results
 - The client IP address
 
 ### What is still stored
 
-To operate and bill the service, Deepslate keeps a minimal set of technical data that contains **no conversation content** and nothing derived from it:
+To operate and bill the service, Deepslate keeps a minimal set of data that contains **no audio, transcripts, or chat history** and nothing derived from them:
 
 | Data | Examples | Purpose |
 |------|----------|---------|
 | Session metadata | Session ID, state, start and end time, duration, model | Billing and usage reporting |
 | Usage records | Feature types and unit counts | Billing |
 | Technical telemetry | Event types and timestamps, turn IDs, tool call IDs, generation time, gaps between turns, audio duration, realtime factor | Performance monitoring |
-
-### How to enable it
-
-<Steps>
-  <Step title="Request access">
-    Contact us at [info@deepslate.eu](mailto:info@deepslate.eu). Once ZDR has been enabled for your organization, the option becomes available in the Deepslate platform.
-  </Step>
-  <Step title="Turn on Zero Data Retention">
-    In the Deepslate platform, open your organization's **Basic Data** page and turn on **Zero Data Retention**. The setting applies to all Realtime API sessions of your organization, including sessions opened through the SDKs and plugins.
-  </Step>
-  <Step title="Optional: set retention per session">
-    If you connect to the WebSocket API directly, you can also set the retention level for a single session using the `X-Deepslate-Data-Retention` header. See [Per-session override](#per-session-override).
-  </Step>
-</Steps>
-
-### Per-session override
-
-Add the `X-Deepslate-Data-Retention` header to the WebSocket handshake to set the retention level for one session:
-
-```javascript
-import WebSocket from 'ws';
-
-const ws = new WebSocket('wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/realtime', {
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY',
-    'X-Deepslate-Data-Retention': 'none'
-  }
-});
-```
-
-| Value | Effect for this session |
-|-------|-------------------------|
-| `none` | Zero Data Retention. No conversation content is stored. |
-| `chat-history` | No audio is recorded. Chat history follows your organization settings. |
-| `all` | No change. Your organization settings apply. |
-
-The header can only make retention **stricter** than your organization settings, never looser. For example, if ZDR is turned on for your organization, sending `all` does not turn it off.
-
-An unknown or empty value rejects the handshake with HTTP `400` before a session is created.
+| Flagged system prompts | System prompts flagged by automated abuse screening, kept only until reviewed | Abuse prevention |
 
 ### Limitations
 
@@ -129,4 +92,4 @@ An unknown or empty value rejects the handshake with HTTP `400` before a session
 
 ## Questions
 
-For questions about data processing, our DPA, or Zero Data Retention, contact us at [info@deepslate.eu](mailto:info@deepslate.eu).
+For questions about data processing or our DPA, contact us at [info@deepslate.eu](mailto:info@deepslate.eu).
