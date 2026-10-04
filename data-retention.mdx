@@ -43,7 +43,7 @@ To have stored call data deleted, contact us at [support@deepslate.eu](mailto:su
 
 ## Zero Data Retention
 
-Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, audio, transcripts, chat history, system prompts, and tool call content are processed exclusively in volatile memory, only for as long as needed to run the session in real time, and are **never persisted** by Deepslate.
+Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, audio, transcripts, chat history, system prompts, and tool call content are processed exclusively in volatile memory, only for as long as needed to run the session in real time, and are **never persisted** by Deepslate. The one exception is a system prompt that is flagged by [abuse screening](#abuse-screening): it is kept until it has been reviewed, and retained if a violation is confirmed.
 
 ### Availability
 
