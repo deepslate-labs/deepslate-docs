@@ -1,0 +1,72 @@
+---
+title: 'Data Retention'
+description: 'What Deepslate stores about your sessions, how long it is kept, and how Zero Data Retention works for the Realtime API'
+icon: 'shield-halved'
+---
+
+This page explains which data Deepslate stores when you use the platform, how you control it, and how **Zero Data Retention (ZDR)** works for sessions on the Realtime API.
+
+## What Deepslate stores
+
+By default, Deepslate stores call data so you can review and analyze your calls in the Deepslate platform, for example to check transcripts, debug a conversation, or improve your system prompt.
+
+The table lists every data category, whether it is stored by default, whether you can turn storage off, and whether it is stored with [Zero Data Retention](#zero-data-retention).
+
+| Data | Stored by default | Can be turned off | Stored with ZDR |
+|---|---|---|---|
+| Session metadata (start and end time, duration, model) | Yes | No | Yes |
+| Usage records | Yes | No | Yes |
+| Billing records | Yes | No | Yes |
+| Technical telemetry (latency, generation time, VAD events, turn IDs, tool call IDs) | Yes | No | Yes |
+| Flagged system prompts | Yes | No | Yes |
+| System prompts | Yes | No | No, unless flagged |
+| Transcripts and chat history | Yes | No | No |
+| Tool calls (names, arguments, results) | Yes | No | No |
+| Audio recordings | Yes | Yes | No |
+| Client IP address | Yes | No | No |
+
+Deepslate needs the data that is also stored with ZDR to bill you, monitor performance, and prevent abuse. It stores all other data so you can review your calls in the platform.
+
+### Abuse screening
+
+Deepslate automatically screens your system prompts for violations of our usage policies. A flagged prompt is kept until it has been reviewed. If the flag turns out to be wrong, the prompt is deleted. If a violation is confirmed, the prompt is retained.
+
+Abuse screening also applies to sessions with ZDR.
+
+### Model training
+
+Your data is not used for model training without your consent. Deepslate does not train its models on your call data unless you have explicitly agreed to it.
+
+### Deletion
+
+To have stored call data deleted, contact us at [support@deepslate.eu](mailto:support@deepslate.eu). When your contract ends, your data is deleted in accordance with your Data Processing Agreement (DPA).
+
+## Zero Data Retention
+
+Zero Data Retention is designed for workloads with especially sensitive data, for example in insurance, banking, or healthcare. With ZDR enabled, audio, transcripts, chat history, system prompts, and tool call content are processed exclusively in volatile memory, only for as long as needed to run the session in real time, and are **never persisted** by Deepslate. The one exception is a system prompt that is flagged by [abuse screening](#abuse-screening): it is kept until it has been reviewed, and retained if a violation is confirmed.
+
+### Availability
+
+Zero Data Retention is an **Enterprise feature** and applies to the **Realtime API only**.
+
+| Product | Covered by ZDR |
+|---|---|
+| Realtime API (WebSocket, LiveKit, Pipecat) | Yes |
+| Assistants and Agents (inbound and outbound phone calls via the platform) | No |
+
+### Data stored with ZDR
+
+To operate and bill the service, Deepslate keeps only the data marked **Yes** in the **Stored with ZDR** column of the [table above](#what-deepslate-stores). This data contains no audio, transcripts, or chat history. It is limited to technical values such as timestamps, durations (including audio duration), generation times, and IDs, plus system prompts flagged by abuse screening.
+
+### Limitations
+
+- **Limited support and debugging.** Because Deepslate does not have the conversation content of ZDR sessions, we cannot inspect them when you report an issue. Troubleshooting is limited to the technical telemetry that is stored with ZDR. To help us debug, include the session ID and a description of what happened.
+- **No call review in the platform.** ZDR sessions do not show transcripts, chat history, or recordings in the Deepslate platform. Tool calls appear with a generic label instead of the tool name.
+
+### Keeping your own records
+
+If you need a record of the conversation, store it on your side. Your client can request the full conversation at any time during the session with [`ExportChatHistoryRequest`](/api-reference/realtime). The SDKs and plugins expose the same capability as chat history export.
+
+## Contact
+
+For questions about data processing or our DPA, contact us at [info@deepslate.eu](mailto:info@deepslate.eu).

@@ -53,6 +53,13 @@
             "pages": [
               "prompt-engineering/system-prompt"
             ]
+          },
+          {
+            "group": "Security & Privacy",
+            "icon": "shield-halved",
+            "pages": [
+              "data-retention"
+            ]
           }
         ]
       },
