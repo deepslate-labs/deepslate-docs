@@ -116,7 +116,7 @@ if __name__ == "__main__":
     | `system_prompt` | `str` | `"You are a helpful assistant."` | System prompt for the model |
     | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds waiting for a model reply (0 = no timeout) |
-    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override (takes precedence over `base_url` and `model`) — useful for local development |
+    | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
     | `max_retries` | `int` | `3` | Maximum reconnection attempts before emitting an `ErrorFrame` |
   </Accordion>
 
@@ -243,8 +243,6 @@ llm = DeepslateRealtimeLLMService(
 #     options=DeepslateOptions.from_env(model="opal-v2.1"),
 # )
 ```
-
-If you set `ws_url`, it takes precedence over `model`.
 
 See [Available Models](opal#available-models) for the current list and how to request access to preview models.
 

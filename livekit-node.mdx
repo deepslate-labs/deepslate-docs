@@ -100,7 +100,7 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     | `generateReplyTimeout` | `number` | `30.0` | Timeout in seconds for `generateReply` (0 = no timeout) |
     | `vad` | `VadConfig` | defaults | Voice activity detection tuning (see below) |
     | `ttsConfig` | `TtsConfig` | `undefined` | TTS configuration (enables audio output). Use a hosted or ElevenLabs config (see below). |
-    | `wsUrl` | `string` | `undefined` | Direct WebSocket URL override (takes precedence over `baseUrl` and `model`) — useful for local development |
+    | `wsUrl` | `string` | `undefined` | Direct WebSocket URL override — useful for local development |
   </Accordion>
 
   <Accordion title="VAD Configuration">
@@ -235,8 +235,6 @@ const llm = new RealtimeModel({ model: DeepslateModel.OPAL_V2_1 });
 // Equivalent, using the model id as a plain string:
 // const llm = new RealtimeModel({ model: "opal-v2.1" });
 ```
-
-If you set `wsUrl`, it takes precedence over `model`.
 
 See [Available Models](opal#available-models) for the current list and how to request access to preview models.
 
