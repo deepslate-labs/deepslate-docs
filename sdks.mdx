@@ -74,6 +74,53 @@ Each configuration class (`DeepslateOptions`, `RealtimeModel`, etc.) accepts the
 Never expose these credentials to clients. All SDK packages are designed for **server-side use** only.
 </Warning>
 
+## Model selection
+
+Every SDK connects to the platform's default Opal model unless you pin one with the `model` option or the `DEEPSLATE_MODEL` environment variable:
+
+```bash
+DEEPSLATE_MODEL=opal-v2.1
+```
+
+<CodeGroup>
+```python LiveKit (Python)
+from deepslate.livekit import DeepslateModel, RealtimeModel
+
+# opal-v2.1 is the current platform default. Pinning it keeps you on this model
+# even if the default changes. See Available Models for other model ids.
+llm = RealtimeModel(model=DeepslateModel.OPAL_V2_1)
+
+# Equivalent, using the model id as a plain string:
+# llm = RealtimeModel(model="opal-v2.1")
+```
+```ts LiveKit (Node.js)
+import { DeepslateModel, RealtimeModel } from "@deepslate-labs/livekit";
+
+// opal-v2.1 is the current platform default. Pinning it keeps you on this model
+// even if the default changes. See Available Models for other model ids.
+const llm = new RealtimeModel({ model: DeepslateModel.OPAL_V2_1 });
+
+// Equivalent, using the model id as a plain string:
+// const llm = new RealtimeModel({ model: "opal-v2.1" });
+```
+```python Pipecat (Python)
+from deepslate.pipecat import DeepslateModel, DeepslateOptions, DeepslateRealtimeLLMService
+
+# opal-v2.1 is the current platform default.
+# See Available Models for other model ids.
+llm = DeepslateRealtimeLLMService(
+    options=DeepslateOptions.from_env(model=DeepslateModel.OPAL_V2_1),
+)
+
+# Equivalent, using the model id as a plain string:
+# llm = DeepslateRealtimeLLMService(
+#     options=DeepslateOptions.from_env(model="opal-v2.1"),
+# )
+```
+</CodeGroup>
+
+See [Available Models](opal#available-models) for the current list and how to request access to preview models.
+
 ## Core packages
 
 Each language has a shared foundation that its plugins are built on — `deepslate-core` (Python) and `@deepslate-labs/core` (Node.js). It handles WebSocket connectivity, protobuf framing, session lifecycle, and exponential-backoff reconnection.
