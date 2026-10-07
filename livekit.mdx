@@ -305,13 +305,27 @@ class WeatherAssistant(Agent):
         )
 ```
 
+## The Deepslate Session
+
+For Deepslate-specific capabilities (direct speech, conversation queries, history export), use the `DeepslateRealtimeSession` that the `AgentSession` created for the active agent. Don't call `session.llm.session()` for this, since it creates a new session that isn't connected to the running call.
+
+```python
+from typing import cast
+
+from deepslate.livekit import DeepslateRealtimeSession
+
+# session is the AgentSession you started
+rt = cast(DeepslateRealtimeSession, session.current_agent.realtime_llm_session)
+```
+
+Inside an agent method such as `on_enter()`, use `self.realtime_llm_session` instead.
+
 ## Direct Speech
 
 `speak_direct()` lets you synthesize and play audio directly — bypassing the LLM entirely. This is useful for scripted prompts, confirmations, or fallback messages.
 
 ```python
-# Inside a session or agent callback
-await session.llm.session().speak_direct(
+await rt.speak_direct(
     "Welcome back! How can I help you today?",
     include_in_history=True,  # Record as an assistant turn (default: True)
     uninterruptable=False,    # Allow the user to barge in (default: False)
@@ -327,7 +341,7 @@ Setting `uninterruptable=True` makes the utterance play to completion: overlappi
 `query_conversation()` runs a one-shot inference call on a side channel, separate from the main conversational turn. The result is returned as a string and does **not** affect the conversation history or trigger any audio.
 
 ```python
-summary = await session.llm.session().query_conversation(
+summary = await rt.query_conversation(
     prompt="Summarize the conversation so far in one sentence.",
 )
 print(summary)  # e.g., "The user asked about weather in Berlin."
@@ -340,16 +354,14 @@ You can also pass `instructions` to further constrain the model's output format.
 Export the full conversation history as a list of structured message dicts at any point during a session:
 
 ```python
-from livekit.agents import EventTypes
-
 # Listen for the export result
-@session.llm.session().on("chat_history_exported")
+@rt.on("chat_history_exported")
 def on_history(messages):
     for msg in messages:
         print(msg["role"], msg["content"])
 
 # Request the export
-await session.llm.session().export_chat_history(
+await rt.export_chat_history(
     await_pending=False,  # Set True to wait for any in-flight operations first
     exclude_audio=False,  # Set True to omit audio blobs (transcripts only)
 )
