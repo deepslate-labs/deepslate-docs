@@ -58,7 +58,22 @@ Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is fo
 ```ts
 import { fileURLToPath } from "node:url";
 import { type JobContext, ServerOptions, cli, defineAgent, voice } from "@livekit/agents";
-import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
+import {
+  RealtimeModel,
+  DeepslateRealtimeSession,
+  elevenLabsConfigFromEnv,
+} from "@deepslate-labs/livekit";
+
+class Assistant extends voice.Agent {
+  constructor() {
+    super({ instructions: "You are a helpful voice AI assistant." });
+  }
+
+  async onEnter(): Promise<void> {
+    const session = this.getActivityOrThrow().realtimeLLMSession as DeepslateRealtimeSession;
+    await session.speakDirect("Hello! How can I help you today?");
+  }
+}
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
@@ -71,11 +86,9 @@ export default defineAgent({
     });
 
     await session.start({
-      agent: new voice.Agent({ instructions: "You are a helpful voice AI assistant." }),
+      agent: new Assistant(),
       room: ctx.room,
     });
-
-    session.generateReply({ instructions: "Greet the user and offer your assistance." });
   },
 });
 
