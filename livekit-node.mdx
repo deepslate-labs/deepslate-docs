@@ -58,7 +58,22 @@ Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is fo
 ```ts
 import { fileURLToPath } from "node:url";
 import { type JobContext, ServerOptions, cli, defineAgent, voice } from "@livekit/agents";
-import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
+import {
+  RealtimeModel,
+  DeepslateRealtimeSession,
+  elevenLabsConfigFromEnv,
+} from "@deepslate-labs/livekit";
+
+class Assistant extends voice.Agent {
+  constructor() {
+    super({ instructions: "You are a helpful voice AI assistant." });
+  }
+
+  async onEnter(): Promise<void> {
+    const session = this.getActivityOrThrow().realtimeLLMSession as DeepslateRealtimeSession;
+    await session.speakDirect("Hello! How can I help you today?");
+  }
+}
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
@@ -71,11 +86,9 @@ export default defineAgent({
     });
 
     await session.start({
-      agent: new voice.Agent({ instructions: "You are a helpful voice AI assistant." }),
+      agent: new Assistant(),
       room: ctx.room,
     });
-
-    session.generateReply({ instructions: "Greet the user and offer your assistance." });
   },
 });
 
@@ -294,14 +307,17 @@ const agent = new voice.Agent({
 
 ## The Deepslate Session
 
-For Deepslate-specific capabilities (direct speech, conversation queries, history export, live configuration), obtain the underlying `DeepslateRealtimeSession` from the model with `model.session()`:
+For Deepslate-specific capabilities (direct speech, conversation queries, history export, live configuration), use the `DeepslateRealtimeSession` that the `AgentSession` created for the active agent. Don't call `model.session()` for this, since it creates a new session that isn't connected to the running call.
 
 ```ts
-import { RealtimeModel, elevenLabsConfigFromEnv } from "@deepslate-labs/livekit";
+import { DeepslateRealtimeSession } from "@deepslate-labs/livekit";
 
-const model = new RealtimeModel({ ttsConfig: elevenLabsConfigFromEnv() });
-const session = model.session();
+// agentSession is the voice.AgentSession you started
+const session = agentSession.currentAgent.getActivityOrThrow()
+  .realtimeLLMSession as DeepslateRealtimeSession;
 ```
+
+Inside an agent method such as `onEnter()`, use `this.getActivityOrThrow().realtimeLLMSession` instead.
 
 The session is an event emitter — subscribe with `session.on(...)`.
 
