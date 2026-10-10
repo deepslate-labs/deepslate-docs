@@ -50,6 +50,18 @@ ws.on('close', (code, reason) => {
 });
 ```
 
+### Data retention headers
+
+Optional headers on the handshake set the [data retention](/data-retention) for this session only. Without them, your organization's settings apply.
+
+| Header | Values | Effect |
+|---|---|---|
+| `X-Deepslate-Retain-Zero-Data` | `true`, `false` | Zero Data Retention for this session. Requires the Enterprise feature. |
+| `X-Deepslate-Retain-Chat-History` | `true`, `false` | Store the chat history of this session. Requires the Enterprise feature. |
+| `X-Deepslate-Retain-Audio` | `true`, `false` | Store the audio recording of this session. |
+
+The handshake fails with `400` for any other value, and when `X-Deepslate-Retain-Zero-Data: true` is combined with another header set to `true`. It fails with `403` when `X-Deepslate-Retain-Zero-Data` or `X-Deepslate-Retain-Chat-History` is sent without the Enterprise feature.
+
 ## Initialize Session
 
 The first message must be an `InitializeSessionRequest` to configure audio format, VAD, and model behavior:
