@@ -96,7 +96,7 @@ if __name__ == "__main__":
     | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
     | `model` | `DeepslateModel \| str \| None` | env: `DEEPSLATE_MODEL`, else platform default | Opal model to run on, see [Model Selection](#model-selection) |
     | `system_prompt` | `str` | `"You are a helpful assistant."` | Default system prompt |
-    | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
+    | `temperature` | `float` | `0.3` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for `generate_reply` (0 = no timeout) |
     | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
     | `tts_config` | `ElevenLabsTtsConfig \| HostedTtsConfig \| None` | `None` | TTS configuration (enables audio output). Use `ElevenLabsTtsConfig` for ElevenLabs synthesis or `HostedTtsConfig` for Deepslate-hosted cloned voices. |

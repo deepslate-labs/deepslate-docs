@@ -109,7 +109,7 @@ cli.runApp(new ServerOptions({ agent: fileURLToPath(import.meta.url) }));
     | `baseUrl` | `string` | `"https://app.deepslate.eu"` | Base URL for the Deepslate API |
     | `model` | `DeepslateModelId` | env: `DEEPSLATE_MODEL`, else platform default | Opal model to run on, see [Model Selection](#model-selection) |
     | `systemPrompt` | `string` | `"You are a helpful assistant."` | Default system prompt |
-    | `temperature` | `number` | `1.0` | Sampling temperature (0.0–2.0) |
+    | `temperature` | `number` | `0.3` | Sampling temperature (0.0–2.0) |
     | `generateReplyTimeout` | `number` | `30.0` | Timeout in seconds for `generateReply` (0 = no timeout) |
     | `vad` | `VadConfig` | defaults | Voice activity detection tuning (see below) |
     | `ttsConfig` | `TtsConfig` | `undefined` | TTS configuration (enables audio output). Use a hosted or ElevenLabs config (see below). |
