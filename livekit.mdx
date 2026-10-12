@@ -170,7 +170,7 @@ if __name__ == "__main__":
     from pathlib import Path
     from deepslate.livekit import HostedVoiceCloneConfig
 
-    llm = deepslate.livekit.realtime.RealtimeModel(
+    llm = deepslate.livekit.RealtimeModel(
         tts_config=HostedVoiceCloneConfig(
             audio_data=Path("voice_sample.pcm").read_bytes(),
             audio_sample_rate=24000,
