@@ -1,10 +1,14 @@
 ---
-title: 'LiveKit Plugin'
-description: 'Integrate Deepslate voice AI with LiveKit Agents for real-time voice applications'
+title: 'LiveKit Plugin (Python)'
+description: 'Integrate Deepslate voice AI with LiveKit Agents (Python) for real-time voice applications'
 icon: 'microphone-lines'
 ---
 
 The `deepslate-livekit` package provides a `RealtimeModel` implementation for the [LiveKit Agents](https://github.com/livekit/agents) framework, enabling seamless integration with Deepslate's unified voice AI infrastructure.
+
+<Note>
+Using the **Node.js / TypeScript** LiveKit framework instead? See the [LiveKit Plugin (Node.js)](livekit-node) page for the `@deepslate-labs/livekit` package.
+</Note>
 
 <Note>
 This plugin lives in the [deepslate-sdks monorepo](https://github.com/deepslate-labs/deepslate-sdks). We welcome contributions — feel free to open issues or pull requests there.
@@ -32,6 +36,7 @@ Set up your credentials as environment variables:
 | `DEEPSLATE_VENDOR_ID` | Yes | Your Deepslate vendor ID |
 | `DEEPSLATE_ORGANIZATION_ID` | Yes | Your Deepslate organization ID |
 | `DEEPSLATE_API_KEY` | Yes | Your Deepslate API key |
+| `DEEPSLATE_MODEL` | No | Opal model to run on. Defaults to the platform default model |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for server-side TTS |
 | `ELEVENLABS_VOICE_ID` | No | ElevenLabs voice ID |
 | `ELEVENLABS_MODEL_ID` | No | ElevenLabs model (e.g., `eleven_turbo_v2`) |
@@ -43,22 +48,28 @@ Never expose your Deepslate or ElevenLabs API keys to clients. This plugin is fo
 ## Quick Start
 
 ```python
+from typing import cast
+
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, room_io
 
-import deepslate.livekit.realtime
-from deepslate.livekit.realtime import ElevenLabsTtsConfig
+import deepslate.livekit
+from deepslate.livekit import DeepslateRealtimeSession, ElevenLabsTtsConfig
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(instructions="You are a helpful voice AI assistant.")
+
+    async def on_enter(self) -> None:
+        session = cast(DeepslateRealtimeSession, self.realtime_llm_session)
+        await session.speak_direct("Hello! How can I help you today?")
 
 server = AgentServer()
 
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
-        llm=deepslate.livekit.realtime.RealtimeModel(
+        llm=deepslate.livekit.RealtimeModel(
             tts_config=ElevenLabsTtsConfig.from_env()
         ),
     )
@@ -67,10 +78,6 @@ async def my_agent(ctx: agents.JobContext):
         room=ctx.room,
         agent=Assistant(),
         room_options=room_io.RoomOptions(),
-    )
-
-    await session.generate_reply(
-        instructions="Greet the user and offer your assistance."
     )
 
 if __name__ == "__main__":
@@ -87,6 +94,7 @@ if __name__ == "__main__":
     | `organization_id` | `str \| None` | env: `DEEPSLATE_ORGANIZATION_ID` | Deepslate organization ID |
     | `api_key` | `str \| None` | env: `DEEPSLATE_API_KEY` | Deepslate API key |
     | `base_url` | `str` | `https://app.deepslate.eu` | Base URL for the Deepslate API |
+    | `model` | `DeepslateModel \| str \| None` | env: `DEEPSLATE_MODEL`, else platform default | Opal model to run on, see [Model Selection](#model-selection) |
     | `system_prompt` | `str` | `"You are a helpful assistant."` | Default system prompt |
     | `temperature` | `float` | `1.0` | Sampling temperature (0.0–2.0) |
     | `generate_reply_timeout` | `float` | `30.0` | Timeout in seconds for `generate_reply` (0 = no timeout) |
@@ -128,15 +136,15 @@ if __name__ == "__main__":
     | `LOW_LATENCY` | Low latency generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
 
     ```python
-    from deepslate.livekit.realtime import HostedTtsConfig, HostedTtsMode
+    from deepslate.livekit import HostedTtsConfig, HostedTtsMode
 
     # Default — high quality
-    llm = deepslate.livekit.realtime.RealtimeModel(
+    llm = deepslate.livekit.RealtimeModel(
         tts_config=HostedTtsConfig(voice_id="c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f")
     )
 
     # Explicit low latency mode
-    llm = deepslate.livekit.realtime.RealtimeModel(
+    llm = deepslate.livekit.RealtimeModel(
         tts_config=HostedTtsConfig(
             voice_id="c3dfa73f-a1ab-4aad-b48a-0e9b9fe4a69f",
             mode=HostedTtsMode.LOW_LATENCY,
@@ -201,7 +209,7 @@ if __name__ == "__main__":
     | `speed` | `float \| None` | Speaking speed multiplier |
 
     ```python
-    from deepslate.livekit.realtime import (
+    from deepslate.livekit import (
         ElevenLabsTtsConfig,
         ElevenLabsVoiceSettingsConfig,
         ElevenLabsLocation,
@@ -222,6 +230,23 @@ if __name__ == "__main__":
     </Tip>
   </Accordion>
 </AccordionGroup>
+
+## Model Selection
+
+Connections use the platform's default Opal model unless you pin one with `model`:
+
+```python
+from deepslate.livekit import DeepslateModel, RealtimeModel
+
+# opal-v2.1 is the current platform default.
+# See Available Models for other model ids.
+llm = RealtimeModel(model=DeepslateModel.OPAL_V2_1)
+
+# Equivalent, using the model id as a plain string:
+# llm = RealtimeModel(model="opal-v2.1")
+```
+
+See [Available Models](opal#available-models) for the current list and how to request access to preview models.
 
 ## Features
 
@@ -258,39 +283,37 @@ if __name__ == "__main__":
   </Card>
 </CardGroup>
 
-## Session Initialized Event
+## Sending a Welcome Message
 
-`DeepslateRealtimeSession` emits a `"session_initialized"` event once the WebSocket session is fully set up and ready to accept messages.
+To greet the user, speak directly the moment the agent becomes active. Override `Agent.on_enter()` and call `speak_direct()` on the realtime session that the `AgentSession` created for you, reachable via `self.realtime_llm_session`. `speak_direct()` buffers the utterance until the session is ready, so no fixed delay or event handling is needed:
 
 ```python
-import asyncio
+from typing import cast
+
 from livekit import agents
 from livekit.agents import AgentSession, Agent
-import deepslate.livekit.realtime
-from deepslate.livekit.realtime import ElevenLabsTtsConfig
+import deepslate.livekit
+from deepslate.livekit import DeepslateRealtimeSession, ElevenLabsTtsConfig
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(instructions="You are a helpful voice AI assistant.")
 
+    async def on_enter(self) -> None:
+        session = cast(DeepslateRealtimeSession, self.realtime_llm_session)
+        await session.speak_direct(
+            "Please note that this call is handled by an AI and may be recorded.",
+            uninterruptable=True,
+        )
+
 @server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
-    model = deepslate.livekit.realtime.RealtimeModel(
+    model = deepslate.livekit.RealtimeModel(
         tts_config=ElevenLabsTtsConfig.from_env()
     )
     session = AgentSession(llm=model)
-
-    deepslate_session = model.session()
-    deepslate_session.on("session_initialized", lambda _: asyncio.create_task(
-        deepslate_session.speak_direct("Hello! How can I help you today?")
-    ))
-
     await session.start(room=ctx.room, agent=Assistant())
 ```
-
-<Note>
-`model.session()` is available after `AgentSession` is created. Register the listener before calling `session.start()` to avoid missing the event.
-</Note>
 
 ## Function Tools
 
@@ -317,26 +340,43 @@ class WeatherAssistant(Agent):
         )
 ```
 
+## The Deepslate Session
+
+For Deepslate-specific capabilities (direct speech, conversation queries, history export), use the `DeepslateRealtimeSession` that the `AgentSession` created for the active agent. Don't call `session.llm.session()` for this, since it creates a new session that isn't connected to the running call.
+
+```python
+from typing import cast
+
+from deepslate.livekit import DeepslateRealtimeSession
+
+# session is the AgentSession you started
+rt = cast(DeepslateRealtimeSession, session.current_agent.realtime_llm_session)
+```
+
+Inside an agent method such as `on_enter()`, use `self.realtime_llm_session` instead.
+
 ## Direct Speech
 
 `speak_direct()` lets you synthesize and play audio directly — bypassing the LLM entirely. This is useful for scripted prompts, confirmations, or fallback messages.
 
 ```python
-# Inside a session or agent callback
-await session.llm.session().speak_direct(
+await rt.speak_direct(
     "Welcome back! How can I help you today?",
     include_in_history=True,  # Record as an assistant turn (default: True)
+    uninterruptable=False,    # Allow the user to barge in (default: False)
 )
 ```
 
 Setting `include_in_history=False` speaks the text without adding it to the conversation context — ideal for system-level announcements.
+
+Setting `uninterruptable=True` makes the utterance play to completion: overlapping user speech is ignored until playback finishes.
 
 ## Conversation Queries
 
 `query_conversation()` runs a one-shot inference call on a side channel, separate from the main conversational turn. The result is returned as a string and does **not** affect the conversation history or trigger any audio.
 
 ```python
-summary = await session.llm.session().query_conversation(
+summary = await rt.query_conversation(
     prompt="Summarize the conversation so far in one sentence.",
 )
 print(summary)  # e.g., "The user asked about weather in Berlin."
@@ -349,16 +389,14 @@ You can also pass `instructions` to further constrain the model's output format.
 Export the full conversation history as a list of structured message dicts at any point during a session:
 
 ```python
-from livekit.agents import EventTypes
-
 # Listen for the export result
-@session.llm.session().on("chat_history_exported")
+@rt.on("chat_history_exported")
 def on_history(messages):
     for msg in messages:
         print(msg["role"], msg["content"])
 
 # Request the export
-await session.llm.session().export_chat_history(
+await rt.export_chat_history(
     await_pending=False,  # Set True to wait for any in-flight operations first
     exclude_audio=False,  # Set True to omit audio blobs (transcripts only)
 )

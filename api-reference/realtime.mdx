@@ -39,7 +39,9 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | `vad_configuration` | VadConfiguration | Voice activity detection settings |
     | `inference_configuration` | InferenceConfiguration | System prompt and model behavior |
     | `tts_configuration` | TtsConfiguration | Optional TTS provider config (e.g., ElevenLabs) |
-    | `supports_playback_reporting` | bool | Whether the client will send `PlaybackPositionReport` messages. When `true`, enables accurate context truncation on user interrupt. Defaults to `false`. |
+    | `supports_playback_reporting` | bool | Set to `true` when the client intends to send `PlaybackPositionReport` messages. Defaults to `false`. |
+    | `enable_vad_frame_telemetry` | bool | When `true`, the server emits per-frame `VadAnalysisFrame` messages (~50 Hz). Off by default for cost and bandwidth reasons. `VadStateEvent` transitions are emitted either way. **Experimental.** |
+    | `experiments` | map&lt;string, Value&gt; | Optional experiments to enable, mapping experiment name to a parameter value whose meaning the experiment defines. **No stability guarantees.** |
 
     ```json
     {
@@ -206,11 +208,15 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `extra_instructions` | string | Optional extra instructions to guide the inference |
+    | `flush_vad` | bool | When `true`, flush whatever the VAD pipeline has buffered and append it as a user audio message before triggering inference. Defaults to `false`. |
+
+    Use `flush_vad` to commit speech the VAD has not released yet, when the trigger comes from an external signal such as a push-to-talk button or a wake word rather than from natural end-of-speech detection. It is a no-op when the buffer is empty.
 
     ```json
     {
       "triggerInference": {
-        "extraInstructions": "Greet the user warmly and ask how you can help."
+        "extraInstructions": "Greet the user warmly and ask how you can help.",
+        "flushVad": false
       }
     }
     ```
@@ -235,18 +241,26 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
   </Accordion>
 
   <Accordion title="PlaybackPositionReport" icon="gauge-high">
-    Reports how many audio bytes the client has played. Only sent when the client declares `supports_playback_reporting: true` in `InitializeSessionRequest`.
+    Reports how many audio bytes the client has played for a given turn.
 
-    The server uses this data to accurately truncate the LLM context to exactly what the user heard when they interrupt. Without this, the server falls back to elapsed-time estimation.
+    The server uses this to truncate the LLM context to exactly what the caller heard when they interrupt, and to pace `ModelSpeechProgress`. Without these reports it falls back to a server-side elapsed-time estimate.
 
     | Field | Type | Description |
     |-------|------|-------------|
-    | `bytes_played` | uint64 | Cumulative number of audio bytes played by the client |
+    | `bytes_played` | uint64 | Number of audio bytes the client has played for `turn_id` |
+    | `turn_id` | uint32? | Which assistant turn these bytes belong to. Should always be set. |
+
+    <Note>
+    Omitting `turn_id` is not the same as sending `0`. Turn IDs are 0-based, so a report without one is read as coming from a client written before turn correlation existed, and the server applies it to the current response instead of the turn you meant.
+    </Note>
+
+    Set `supports_playback_reporting` in `InitializeSessionRequest` when you intend to send these reports.
 
     ```json
     {
       "playbackPositionReport": {
-        "bytesPlayed": 32000
+        "bytesPlayed": 32000,
+        "turnId": 4
       }
     }
     ```
@@ -259,13 +273,29 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
     |-------|------|-------------|
     | `text` | string | Text to speak |
     | `include_in_history` | bool | When `false`, the text is spoken but marked as ephemeral — the LLM won't know it was spoken |
+    | `uninterruptable` | bool | When `true`, the utterance plays to completion and overlapping user speech is ignored until playback finishes. Defaults to `false`. |
+
+    Use `uninterruptable` for compliance announcements, such as notifying the caller that they are speaking with an AI.
 
     ```json
     {
       "directSpeech": {
         "text": "Please hold, transferring your call.",
-        "includeInHistory": false
+        "includeInHistory": false,
+        "uninterruptable": false
       }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Ping" icon="satellite-dish">
+    Liveness check. The server replies with `Pong`. Carries no fields.
+
+    Use it to keep a session alive when nothing else is being sent, or to measure round-trip latency.
+
+    ```json
+    {
+      "ping": {}
     }
     ```
   </Accordion>
@@ -297,22 +327,44 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
 
 Messages sent from server to client, wrapped in `ClientBoundMessage`.
 
+Most of these messages carry a `turn_id` identifying the assistant turn they belong to. Turn IDs are 0-based, so `0` is a real turn rather than a missing value. `ResponseBegin`, `ResponseEnd`, `ModelSpeechProgress` and `InferenceComplete` always carry one, whereas `ModelTextFragment` and `ModelAudioChunk` carry an optional `turn_id`. When absent, the message belongs to the current turn.
+
+An assistant turn ends in three stages, each reported by a different message. They are not interchangeable.
+
+| Signal | Meaning |
+|--------|---------|
+| `InferenceComplete` | The LLM has finished generating. TTS may still be synthesizing. |
+| `ResponseEnd` | All audio for the turn has been sent. Content can still change due to interruption. |
+| `TurnSnapshot` with `is_final: true` | The turn's content is final and will not change again. |
+
 <AccordionGroup>
-  <Accordion title="ModelTextFragment" icon="text" defaultOpen>
+  <Accordion title="SessionReady" icon="circle-check" defaultOpen>
+    Sent once the session is fully initialized and ready to accept input, after TTS warmup completes. Wait for this message before sending `UserInput`. Carries no fields.
+
+    ```json
+    {
+      "sessionReady": {}
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ModelTextFragment" icon="text">
     Streamed text output as tokens arrive.
 
-    <Warning>
-    `ModelTextFragment` is **only sent in text-only mode** - when no `tts_configuration` is present in `InitializeSessionRequest`. If TTS is configured, the server sends `ModelAudioChunk` messages instead and `ModelTextFragment` is never emitted.
-    </Warning>
+    `ModelTextFragment` is emitted for every assistant turn, whether or not TTS is configured, and carries text as the model generates it.
+
+    When TTS is configured, these fragments run ahead of speech synthesis, so they reflect what the model has produced rather than what the caller has heard. `ModelSpeechProgress` reports the playback-paced view of the same text.
 
     | Field | Type | Description |
     |-------|------|-------------|
     | `text` | string | Text content of this fragment |
+    | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn this fragment belongs to. When absent, attribute the fragment to the current turn. |
 
     ```json
     {
       "modelTextFragment": {
-        "text": "Hello, how can I help you?"
+        "text": "Hello, how can I help you?",
+        "turnId": 4
       }
     }
     ```
@@ -324,14 +376,9 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     | Field | Type | Description |
     |-------|------|-------------|
     | `audio` | AudioData | Audio bytes matching output_audio_line config |
-    | `transcript` | string? | Optional. When present, may be empty or contain the spoken text. See note below. |
+    | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn this audio belongs to. |
 
-    <Note>
-    The `transcript` field is **optional** — it may be absent from a given chunk entirely.
-
-    - **Deepslate hosted TTS** does not populate `transcript`.
-    - **Third-party TTS providers** (e.g., ElevenLabs) may populate it to supply word-level alignment data alongside the audio.
-    </Note>
+    `ModelAudioChunk` carries audio only. For the text that goes with it, use `ModelSpeechProgress`.
 
     ```json
     {
@@ -339,7 +386,41 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
         "audio": {
           "data": "<binary-pcm-data>"
         },
-        "transcript": "Hello, how can I help you?"
+        "turnId": 4
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ModelSpeechProgress" icon="waveform-lines">
+    Reports how much of an assistant turn's text has become audible. Emitted continuously while TTS audio is playing.
+
+    Where `ModelTextFragment` gives you the text as the model produces it, `ModelSpeechProgress` gives you the same text paced to playback. Use it to display what the caller has actually heard.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this progress belongs to |
+    | `text` | string | Text that became audible since the previous `ModelSpeechProgress` for this turn |
+    | `audio_bytes_played` | uint64 | Audio bytes played so far, per the server's estimate |
+    | `exact` | bool | Debug indicator of whether the segment aligns precisely with played audio. See note below. |
+
+    Concatenating `text` in arrival order reproduces the same text as the turn's `ModelTextFragment` messages, so the result is always a valid prefix of the generated text.
+
+    <Note>
+    Treat `exact` as debug information only, never as a correctness gate.
+
+    A segment with `exact: false` still contains the correct and complete text. It may just not correspond precisely to the audio played so far. The server keeps this drift as small as it can, but a small amount is unavoidable.
+    </Note>
+
+    The server derives `audio_bytes_played` from its own estimate of playback. Send `PlaybackPositionReport` messages to replace that estimate with your client's real position and tighten the whole stream.
+
+    ```json
+    {
+      "modelSpeechProgress": {
+        "turnId": 4,
+        "text": "Hello, how can I",
+        "audioBytesPlayed": 48000,
+        "exact": true
       }
     }
     ```
@@ -353,6 +434,7 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
     | `id` | string | Unique identifier for this request |
     | `name` | string | Name of the tool to call |
     | `parameters` | object | Parameters matching the tool's schema |
+    | `turn_id` | uint32? | Optional. Session-local ID of the assistant turn that issued this tool call. |
 
     ```json
     {
@@ -361,7 +443,8 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
         "name": "get_weather",
         "parameters": {
           "location": "Amsterdam"
-        }
+        },
+        "turnId": 4
       }
     }
     ```
@@ -382,19 +465,90 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
   <Accordion title="ResponseBegin" icon="play">
     Notification that the model has begun its response.
 
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this response begins |
+
     ```json
     {
-      "responseBegin": {}
+      "responseBegin": {
+        "turnId": 4
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="InferenceComplete" icon="brain">
+    The LLM has finished producing this turn's output.
+
+    Generation is done, but the turn is not. TTS audio may still be synthesizing, and further events for the turn will still arrive.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn whose generation finished |
+
+    ```json
+    {
+      "inferenceComplete": {
+        "turnId": 4
+      }
     }
     ```
   </Accordion>
 
   <Accordion title="ResponseEnd" icon="circle-check">
-    Notification that the model has finished its response.
+    Notification that no more audio is coming for this turn. Sent once all audio packets for the turn have been sent.
+
+    <Warning>
+    `ResponseEnd` does not mean the turn is finished. The turn's content can still change afterwards, for example when an interruption shortens it.
+    </Warning>
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `turn_id` | uint32 | Session-local ID of the assistant turn this response ends. Matches the `turn_id` from the preceding `ResponseBegin`. |
 
     ```json
     {
-      "responseEnd": {}
+      "responseEnd": {
+        "turnId": 4
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="TurnSnapshot" icon="camera">
+    The server's authoritative view of one turn's content at a point in time.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `message` | ChatMessage | The turn's content as of this snapshot |
+    | `is_final` | bool | When `true`, the turn is finalized and no further snapshots for it will arrive |
+
+    <Warning>
+    Snapshots are not guaranteed to be monotonic. A turn can produce several of them, and content can be rolled back, for example when an interruption means part of a response was never heard.
+    </Warning>
+
+    `is_final` means the turn's content will not change again. It does not mean the turn stays visible forever since context truncation can still remove it from the model's context later, which `ContextTruncated` reports.
+
+    ```json
+    {
+      "turnSnapshot": {
+        "message": {
+          "role": "ASSISTANT",
+          "turnId": 4,
+          "deliveryStatus": "DELIVERY_INTERRUPTED",
+          "ephemeral": false,
+          "createdAt": "2026-09-01T14:23:10Z",
+          "content": [
+            {
+              "textContent": {
+                "text": "It's currently 3:45"
+              }
+            }
+          ]
+        },
+        "isFinal": true
+      }
     }
     ```
   </Accordion>
@@ -411,30 +565,117 @@ Messages sent from server to client, wrapped in `ClientBoundMessage`.
       "chatHistory": {
         "messages": [
           {
-            "role": "user",
-            "delivery_status": "DELIVERY_COMPLETE",
+            "role": "USER",
+            "turnId": 3,
+            "deliveryStatus": "DELIVERY_COMPLETE",
             "ephemeral": false,
             "content": [
               {
-                "type": "input_audio",
-                "transcription": "What time is it?"
+                "inputAudio": {
+                  "transcription": "What time is it?"
+                }
               }
             ]
           },
           {
-            "role": "assistant",
-            "delivery_status": "DELIVERY_COMPLETE",
+            "role": "ASSISTANT",
+            "turnId": 4,
+            "deliveryStatus": "DELIVERY_COMPLETE",
             "ephemeral": false,
             "content": [
               {
-                "type": "text",
-                "text": "It's currently 3:45 PM.",
-                "tts_audio": null
+                "textContent": {
+                  "text": "It's currently 3:45 PM."
+                }
               }
             ]
           }
         ]
       }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="ContextTruncated" icon="scissors">
+    Messages were removed from the LLM's context window to fit the token budget.
+
+    Only turns newly truncated in this inference cycle are listed. Turns reported in an earlier `ContextTruncated` are not repeated.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `truncated_turn_ids` | uint32[] | Turn IDs newly removed from the model's context. The model can no longer see these messages. |
+    | `response_turn_id` | uint32 | The assistant turn generated with the truncated context, correlating this event with that inference cycle |
+
+    A truncated turn keeps its content and stays in an exported `ChatHistory`. It is the model's view that shrinks, not yours. The turn's `ChatMessage.truncated_at_response_turn_id` records the same relationship, so you can look up when it happened after the fact.
+
+    ```json
+    {
+      "contextTruncated": {
+        "truncatedTurnIds": [1, 2],
+        "responseTurnId": 9
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="VadStateEvent" icon="wave-square">
+    Emitted on every VAD state-machine transition. Always sent, regardless of whether `enable_vad_frame_telemetry` is set.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `session_time` | Duration | Time elapsed since the input pipeline started when the transition occurred |
+    | `from_state` | VadState | The state before the transition |
+    | `to_state` | VadState | The state after the transition |
+    | `packet_id` | uint64 | The `packet_id` of the `UserInput` packet that triggered the transition |
+
+    ```json
+    {
+      "vadStateEvent": {
+        "sessionTime": { "seconds": 2, "nanos": 340000000 },
+        "fromState": "SILENCE",
+        "toState": "SPEECH_STARTING",
+        "packetId": 42
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="VadAnalysisFrame" icon="chart-waveform">
+    Per-frame VAD telemetry, emitted at ~50 Hz (20 ms frames on 16 kHz audio). Only sent when `enable_vad_frame_telemetry: true` was set in `InitializeSessionRequest`.
+
+    <Warning>
+    This message type is **experimental** and may be changed or removed without a major version bump. It is intended for debugging and telemetry. Do not rely on it for critical functionality.
+    </Warning>
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `frame_index` | uint64 | Monotonic frame index for this session |
+    | `session_time` | Duration | Wall-clock time elapsed since the input pipeline started, at the end of this frame |
+    | `confidence` | float | Raw VAD confidence score from the underlying engine (0.0–1.0) |
+    | `volume` | float | Raw RMS volume of the audio frame (0.0–1.0) |
+    | `state` | VadState | The state-machine state at the **end** of this frame |
+    | `source_packet_ids` | uint64[] | `packet_id`s whose audio contributed to this frame. Usually one; multiple at packet boundaries or with very small packets. |
+
+    ```json
+    {
+      "vadAnalysisFrame": {
+        "frameIndex": 117,
+        "sessionTime": { "seconds": 2, "nanos": 340000000 },
+        "confidence": 0.82,
+        "volume": 0.31,
+        "state": "SPEECH",
+        "sourcePacketIds": [42]
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Pong" icon="satellite-dish">
+    Reply to a client `Ping`. Carries no fields.
+
+    ```json
+    {
+      "pong": {}
     }
     ```
   </Accordion>
@@ -671,6 +912,19 @@ Controls the quality/latency trade-off for hosted TTS generation.
 | `HIGH_QUALITY` | Default. Higher quality output with still relatively low latency. Recommended for most use cases. |
 | `LOW_LATENCY` | Fastest generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
 
+### VadState
+
+State of the VAD debounce machine.
+
+| Value | Description |
+|-------|-------------|
+| `SILENCE` | No speech detected |
+| `SPEECH_STARTING` | Above-threshold frame seen; waiting for `start_duration` to confirm onset |
+| `SPEECH` | Active speech confirmed |
+| `SPEECH_ENDING` | Below-threshold frame seen; waiting for `stop_duration` to confirm offset |
+
+For the full state machine, including the debounce windows and the threshold rule, see [VAD](/api-reference/vad).
+
 ### Duration
 
 | Field | Type | Description |
@@ -714,6 +968,9 @@ A single message in the conversation history.
 | `content` | ChatMessageContent[] | Ordered content blocks of this message |
 | `delivery_status` | ChatDeliveryStatus | Delivery status of this message |
 | `ephemeral` | bool | `true` when the message was spoken via `DirectSpeech` with `include_in_history: false` — audible to the user but not in the LLM's context |
+| `created_at` | Timestamp | When the turn was created |
+| `turn_id` | uint32? | Session-local ID of the assistant turn this message belongs to |
+| `truncated_at_response_turn_id` | uint32? | If this turn was dropped from the LLM's context window, the turn ID of the assistant response first generated without it. Absent while the turn is still in context. |
 
 ### ChatMessageRole
 
