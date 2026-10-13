@@ -132,7 +132,9 @@ if __name__ == "__main__":
     | `backbuffer_duration_ms` | `int` | `1000` | Audio buffered before the detection window (ms) |
 
     ```python
-    from deepslate.pipecat import VadConfig, DeepslateRealtimeLLMService
+    from deepslate.pipecat import DeepslateOptions, VadConfig, DeepslateRealtimeLLMService
+
+    opts = DeepslateOptions.from_env()
 
     llm = DeepslateRealtimeLLMService(
         options=opts,
@@ -160,7 +162,14 @@ if __name__ == "__main__":
     | `LOW_LATENCY` | Low latency generation mode that takes next to no time to complete. Output quality may be significantly reduced. |
 
     ```python
-    from deepslate.pipecat import HostedTtsConfig, HostedTtsMode, DeepslateRealtimeLLMService
+    from deepslate.pipecat import (
+        DeepslateOptions,
+        HostedTtsConfig,
+        HostedTtsMode,
+        DeepslateRealtimeLLMService,
+    )
+
+    opts = DeepslateOptions.from_env()
 
     # Default — high quality
     llm = DeepslateRealtimeLLMService(
@@ -194,7 +203,9 @@ if __name__ == "__main__":
 
     ```python
     from pathlib import Path
-    from deepslate.pipecat import HostedVoiceCloneConfig, DeepslateRealtimeLLMService
+    from deepslate.pipecat import DeepslateOptions, HostedVoiceCloneConfig, DeepslateRealtimeLLMService
+
+    opts = DeepslateOptions.from_env()
 
     llm = DeepslateRealtimeLLMService(
         options=opts,
