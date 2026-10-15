@@ -57,10 +57,10 @@ Messages sent from client to server, wrapped in `ServiceBoundMessage`.
           "sampleFormat": "SIGNED_16_BIT"
         },
         "vadConfiguration": {
-          "confidenceThreshold": 0.5,
+          "confidenceThreshold": 0.4,
           "minVolume": 0,
-          "startDuration": { "seconds": 0, "nanos": 200000000 },
-          "stopDuration": { "seconds": 0, "nanos": 500000000 },
+          "startDuration": { "seconds": 0, "nanos": 150000000 },
+          "stopDuration": { "seconds": 0, "nanos": 390000000 },
           "backbufferDuration": { "seconds": 1, "nanos": 0 }
         },
         "inferenceConfiguration": {
@@ -934,10 +934,10 @@ For the full state machine, including the debounce windows and the threshold rul
 
 ```json
 // 500 milliseconds
-{ "seconds": 0, "nanos": 500000000 }
+{ "seconds": 0, "nanos": 390000000 }
 
 // 1.5 seconds
-{ "seconds": 1, "nanos": 500000000 }
+{ "seconds": 1, "nanos": 390000000 }
 ```
 
 ### InferenceTriggerMode

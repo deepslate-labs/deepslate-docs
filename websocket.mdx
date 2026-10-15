@@ -85,10 +85,10 @@ const initMessage = ServiceBoundMessage.create({
       sampleFormat: 1  // SIGNED_16_BIT
     },
     vadConfiguration: {
-      confidenceThreshold: 0.5,
+      confidenceThreshold: 0.4,
       minVolume: 0,
-      startDuration: { seconds: 0, nanos: 300000000 },  // 300ms
-      stopDuration: { seconds: 0, nanos: 700000000 },   // 700ms
+      startDuration: { seconds: 0, nanos: 150000000 },  // 150ms
+      stopDuration: { seconds: 0, nanos: 390000000 },   // 390ms
       backbufferDuration: { seconds: 1, nanos: 0 }      // 1s
     },
     inferenceConfiguration: {
@@ -551,10 +551,10 @@ async function main() {
         inputAudioLine: { sampleRate: SAMPLE_RATE, channelCount: CHANNELS, sampleFormat: 1 },
         outputAudioLine: { sampleRate: SAMPLE_RATE, channelCount: CHANNELS, sampleFormat: 1 },
         vadConfiguration: {
-          confidenceThreshold: 0.5,
+          confidenceThreshold: 0.4,
           minVolume: 0,
-          startDuration: { seconds: 0, nanos: 300000000 },
-          stopDuration: { seconds: 0, nanos: 700000000 },
+          startDuration: { seconds: 0, nanos: 150000000 },
+          stopDuration: { seconds: 0, nanos: 390000000 },
           backbufferDuration: { seconds: 1, nanos: 0 }
         },
         inferenceConfiguration: {
