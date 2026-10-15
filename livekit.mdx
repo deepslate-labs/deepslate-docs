@@ -101,10 +101,10 @@ if __name__ == "__main__":
     | `ws_url` | `str \| None` | `None` | Direct WebSocket URL override — useful for local development |
     | `tts_config` | `ElevenLabsTtsConfig \| HostedTtsConfig \| None` | `None` | TTS configuration (enables audio output). Use `ElevenLabsTtsConfig` for ElevenLabs synthesis or `HostedTtsConfig` for Deepslate-hosted cloned voices. |
     | `http_session` | `aiohttp.ClientSession \| None` | `None` | Shared aiohttp session |
-    | `vad_confidence_threshold` | `float` | `0.5` | Minimum confidence to consider audio as speech (0.0–1.0) |
-    | `vad_min_volume` | `float` | `0.01` | Minimum volume threshold (0.0–1.0) |
-    | `vad_start_duration_ms` | `int` | `200` | Duration of speech to detect start (ms) |
-    | `vad_stop_duration_ms` | `int` | `500` | Duration of silence to detect speech end (ms) |
+    | `vad_confidence_threshold` | `float` | `0.4` | Minimum confidence to consider audio as speech (0.0–1.0) |
+    | `vad_min_volume` | `float` | `0.0` | Minimum volume threshold (0.0–1.0) |
+    | `vad_start_duration_ms` | `int` | `150` | Duration of speech to detect start (ms) |
+    | `vad_stop_duration_ms` | `int` | `390` | Duration of silence to detect speech end (ms) |
     | `vad_backbuffer_duration_ms` | `int` | `1000` | Audio buffered before speech detection (ms) |
   </Accordion>
 
@@ -113,10 +113,10 @@ if __name__ == "__main__":
 
     | Parameter | Default | Description |
     |-----------|---------|-------------|
-    | `vad_confidence_threshold` | `0.5` | Minimum confidence score to classify audio as speech (0.0–1.0) |
-    | `vad_min_volume` | `0.01` | Minimum audio volume to consider (0.0–1.0) |
-    | `vad_start_duration_ms` | `200` | Consecutive speech duration required to start a turn (ms) |
-    | `vad_stop_duration_ms` | `500` | Silence duration required to end a turn (ms) |
+    | `vad_confidence_threshold` | `0.4` | Minimum confidence score to classify audio as speech (0.0–1.0) |
+    | `vad_min_volume` | `0.0` | Minimum audio volume to consider (0.0–1.0) |
+    | `vad_start_duration_ms` | `150` | Consecutive speech duration required to start a turn (ms) |
+    | `vad_stop_duration_ms` | `390` | Silence duration required to end a turn (ms) |
     | `vad_backbuffer_duration_ms` | `1000` | Audio buffered before the detection window (ms) |
   </Accordion>
 

@@ -4634,10 +4634,10 @@
                 "useSpeakerBoost": false
               },
               "vad": {
-                "confidenceThreshold": 0.5,
+                "confidenceThreshold": 0.4,
                 "minVolume": 0.0,
-                "startDuration": 0.3,
-                "stopDuration": 0.7,
+                "startDuration": 0.15,
+                "stopDuration": 0.39,
                 "backbufferDuration": 1.0
               }
             }
@@ -4681,10 +4681,10 @@
                 "useSpeakerBoost": false
               },
               "vad": {
-                "confidenceThreshold": 0.5,
+                "confidenceThreshold": 0.4,
                 "minVolume": 0.0,
-                "startDuration": 0.3,
-                "stopDuration": 0.7,
+                "startDuration": 0.15,
+                "stopDuration": 0.39,
                 "backbufferDuration": 1.0
               }
             }
@@ -4764,10 +4764,10 @@
                 "useSpeakerBoost": false
               },
               "vad": {
-                "confidenceThreshold": 0.5,
+                "confidenceThreshold": 0.4,
                 "minVolume": 0.0,
-                "startDuration": 0.3,
-                "stopDuration": 0.7,
+                "startDuration": 0.15,
+                "stopDuration": 0.39,
                 "backbufferDuration": 1.0
               }
             }
