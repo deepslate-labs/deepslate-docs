@@ -161,7 +161,7 @@ The server sends `ClientBoundMessage` with one of several payload types.
 
 Most response messages carry a `turnId` identifying the assistant turn they belong to. Turn IDs are 0-based, so `0` is a real turn, not a missing value.
 
-`ResponseBegin`, `ResponseEnd`, `ModelSpeechProgress` and `InferenceComplete` always carry one. On `ModelTextFragment` and `ModelAudioChunk` it is optional. When it is absent, attribute the message to the turn opened by the most recent `ResponseBegin`.
+`ResponseBegin`, `ResponseEnd`, `ModelTextFragment`, `ModelSpeechProgress` and `InferenceComplete` always carry one. On `ModelAudioChunk` it is optional. When it is absent, attribute the message to the turn opened by the most recent `ResponseBegin`.
 
 ```javascript
 // Turn opened by the most recent ResponseBegin
@@ -179,7 +179,7 @@ ws.on('message', (data) => {
   if (message.modelTextFragment) {
     // Streamed text for this turn, emitted whether or not TTS is configured
     const { text, turnId } = message.modelTextFragment;
-    appendTurnText(turnId ?? currentTurnId, text);
+    appendTurnText(turnId, text);
   }
 
   if (message.modelAudioChunk) {
@@ -355,8 +355,6 @@ At least one of `prompt` or `instructions` must be provided. If `prompt` is abse
 Send `PlaybackPositionReport` messages regularly as audio plays. This gives the server accurate data to truncate the LLM context to exactly what the caller heard when they interrupt.
 
 Counts are per turn, not per session. Use the `turnId` from the `ModelAudioChunk` the bytes came from, falling back to the current turn when the chunk omits it, and keep a separate total for each turn.
-
-`turnId` on the report is itself optional, and omitting it is not the same as sending `0`. Turn IDs are 0-based, so a report without one is read as coming from a client that predates turn correlation, and the server applies it to the current response instead. Always set it.
 
 ```javascript
 const playedByTurn = new Map(); // turnId -> bytes played for that turn
