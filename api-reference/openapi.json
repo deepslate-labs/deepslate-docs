@@ -1203,7 +1203,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'hostname,asc'. Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Sortable properties: id, hostname, port, username, maxAgentTasks, transport, outboundProxy. Default sort is 'hostname,asc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "string",
@@ -1361,7 +1361,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'telephoneNumber,asc'. Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Sortable properties: id, telephoneNumber, fallback. Default sort is 'telephoneNumber,asc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "string",
@@ -2496,7 +2496,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'telephoneNumber,asc'. Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Sortable properties: id, telephoneNumber, fallback. Default sort is 'telephoneNumber,asc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "string",
