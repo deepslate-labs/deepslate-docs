@@ -50,6 +50,22 @@ ws.on('close', (code, reason) => {
 });
 ```
 
+### Model selection
+
+Connections use the platform's default Opal model. To pin a model, append its id to the endpoint path:
+
+```javascript
+// opal-v2.1 is the current platform default. Pinning it keeps you on this model
+// even if the default changes. See Available Models for other model ids.
+const ws = new WebSocket('wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/realtime/opal-v2.1', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  }
+});
+```
+
+The handshake fails with `404` for an unknown model id and with `403` for a model your organization has no access to. See [Available Models](/opal#available-models) for the current list and how to request access to preview models.
+
 ### Data retention headers
 
 Optional headers on the handshake set the [data retention](/data-retention) for this session only. Without them, your organization's settings apply.
