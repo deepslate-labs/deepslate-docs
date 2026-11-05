@@ -51,7 +51,8 @@
             "group": "Prompt Engineering",
             "icon": "wand-magic-sparkles",
             "pages": [
-              "prompt-engineering/system-prompt"
+              "prompt-engineering/system-prompt",
+              "prompt-engineering/prompt-variables"
             ]
           },
           {

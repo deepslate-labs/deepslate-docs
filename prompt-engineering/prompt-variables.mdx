@@ -1,0 +1,95 @@
+---
+title: Prompt Variables
+description: "Insert the current date, the current time, and per-call values into a system prompt with placeholders."
+---
+
+A prompt variable is a placeholder in double curly braces, such as `{{date}}`. When a call starts, Deepslate replaces each variable with its value before the model sees the prompt.
+
+## Fields that support variables
+
+Deepslate replaces variables in these fields only:
+
+| Dashboard | API | Calls |
+|-----------|-----|-------|
+| **System Prompt** of an inbound bot | `systemPrompt` of an assistant | Inbound calls and test calls from the dashboard |
+| **System Prompt Template** of an outbound bot | `systemPromptTemplate` of an agent | Planned calls (agent tasks in the API) |
+
+Other fields, such as the greeting (`systemPromptGreeting`), are used as written.
+
+## Built-in variables
+
+| Variable | Value | Example |
+|----------|-------|---------|
+| `{{date}}` | The current date | `3. November 2026` |
+| `{{time}}` | The current time | `13:42:17 Uhr` |
+
+Both variables use German formatting and default to UTC.
+
+### Time zones
+
+To use a different time zone, add a colon and the zone after the variable name:
+
+```text
+Today is {{date:Europe/Berlin}}. The current time is {{time:Europe/Berlin}}.
+```
+
+At 13:42:17 UTC on 3 November 2026, the model receives:
+
+```text
+Today is 3. November 2026. The current time is 14:42:17 Uhr.
+```
+
+The zone is one of the following:
+
+- An IANA time zone name, such as `Europe/Berlin` or `America/New_York`. The value follows daylight saving time.
+- A fixed UTC offset, such as `+01:00` or `-05:00`. The value does not change with daylight saving time.
+
+The zone applies to the date as well as the time. At the same moment, `{{date:Pacific/Auckland}}` is `4. November 2026`.
+
+## User values
+
+Outbound bots also take user values: call-specific data, such as the name of the person the bot calls. You define the keys once on the outbound bot and set the values for each planned call. Each key is a variable in the outbound bot's system prompt template.
+
+For example, this system prompt template:
+
+```text
+You are calling {{customer_name}} about their interest in the {{product_interest}}.
+```
+
+with these user values:
+
+```json
+{
+	"customer_name": "Alice Wonderland",
+	"product_interest": "Teapot"
+}
+```
+
+gives the model this prompt:
+
+```text
+You are calling Alice Wonderland about their interest in the Teapot.
+```
+
+A user value replaces a built-in variable that has the same name. A `date` user value replaces `{{date}}`, but not `{{date:Europe/Berlin}}`.
+
+### Set user values in the dashboard
+
+1. Open the outbound bot. Under **User Values**, add each key and choose its type.
+2. Use each key as `{{key}}` in the **System Prompt Template**.
+3. Create a planned call for the outbound bot. Enter the values under **Parameters for** followed by the bot's name.
+
+### Set user values with the API
+
+1. Define the keys in the agent's `userValueTypes`. See [Create Agent](/api-reference/agents/create).
+2. Set the values in the task's `userValues`. See [Create Agent Task](/api-reference/agent-tasks/create).
+
+## Placeholders that stay unchanged
+
+If Deepslate can't resolve a placeholder, it leaves the text unchanged and the model sees the literal placeholder. This happens when:
+
+- The variable name is unknown, such as `{{foo}}`, or the planned call has no value for the key.
+- The time zone is unknown, such as `{{time:Mars/Olympus}}`.
+- The time zone is empty, such as `{{date:}}`.
+
+A dollar sign directly before a placeholder also stops the replacement. `${{date}}` becomes the literal text `{{date}}`. To write a dollar amount, put the currency after the value as a word, for example `{{price}} dollars`.
