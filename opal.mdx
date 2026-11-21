@@ -126,13 +126,35 @@ Opal supports two output modes depending on your use case:
 | Model | Status | Notes |
 |-------|--------|-------|
 | `opal-v2.1` | Generally available | The platform default. Used whenever no model is specified. |
-| `opal-v3.0-preview` | Preview | Must be enabled for your organization. Contact [Deepslate](mailto:info@deepslate.eu) to request access. |
+| `opal-v3.0-preview` | Preview | Must be enabled for your organization. See [Enable a preview model](#enable-a-preview-model). |
 
 You select a model in one of three places: with the `model` option in the [SDKs](sdks#model-selection), in the endpoint path of a [raw WebSocket connection](websocket#model-selection), or in the Deepslate platform under **Speech model** when creating or editing a voice model. If you do not specify a model, the connection uses the current platform default.
 
 <Note>
-Preview models are made available to individual organizations ahead of general release. Requesting a model your organization has no access to rejects the connection.
+Preview models are released ahead of general availability for testing and evaluation. Requesting a model your organization has not enabled rejects the connection.
 </Note>
+
+### Enable a preview model
+
+You need permission to edit your organization in the Deepslate platform.
+
+1. In the Deepslate platform, open **Organization → Basic Data**.
+2. In the **Experiments** card, find the preview model and click **Enable**.
+3. Read the limitations and risks in the dialog. Select both checkboxes.
+4. Click **Agree and enable**.
+
+The model shows **Enabled** and is available to your whole organization right away. To disable a preview model, contact [support@deepslate.eu](mailto:support@deepslate.eu).
+
+By enabling a preview model, you accept these terms:
+
+- Availability, stability, performance, and output quality are not guaranteed.
+- The model can change, become unavailable, or be taken offline permanently at any time without notice.
+- The model is not recommended for production use.
+- Deepslate records and stores the session data of preview model sessions and uses it for evaluation and training.
+
+<Warning>
+Sessions on a preview model always use full data retention. Your organization's [data retention](/data-retention) settings, including Zero Data Retention, do not apply to them. A WebSocket handshake for a preview model fails with `400` if it sends a [data retention header](/websocket#data-retention-headers) that restricts retention.
+</Warning>
 
 ## Integration with Deepslate Realtime
 

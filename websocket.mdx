@@ -64,7 +64,7 @@ const ws = new WebSocket('wss://app.deepslate.eu/api/v1/vendors/{vendorId}/organ
 });
 ```
 
-The handshake fails with `404` for an unknown model id and with `403` for a model your organization has no access to. See [Available Models](/opal#available-models) for the current list and how to request access to preview models.
+The handshake fails with `404` for an unknown model id and with `403` for a model your organization has not enabled. See [Available Models](/opal#available-models) for the current list and [Enable a preview model](/opal#enable-a-preview-model) to use a preview model.
 
 ### Data retention headers
 
@@ -76,6 +76,8 @@ Optional headers on the handshake set the [data retention](/data-retention) for 
 | `X-Deepslate-Retain-Audio` | `true`, `false` | Store the audio recording of this session. |
 
 The handshake fails with `400` for any other value, and when zero data retention is in effect for the session, from the organization setting or the header, while `X-Deepslate-Retain-Audio` is `true`. It fails with `403` when `X-Deepslate-Retain-Zero-Data` is sent without the Enterprise feature.
+
+Sessions on a [preview model](/opal#enable-a-preview-model) always use full data retention. If your organization has enabled the preview model, the handshake fails with `400` when a header restricts retention: `X-Deepslate-Retain-Zero-Data: true` or `X-Deepslate-Retain-Audio: false`. Both `403` rules take precedence over this `400`. A preview model that your organization has not enabled fails with `403`. `X-Deepslate-Retain-Zero-Data` without the Enterprise feature also fails with `403`.
 
 ## Initialize Session
 
