@@ -77,7 +77,7 @@ Optional headers on the handshake set the [data retention](/data-retention) for 
 
 The handshake fails with `400` for any other value, and when zero data retention is in effect for the session, from the organization setting or the header, while `X-Deepslate-Retain-Audio` is `true`. It fails with `403` when `X-Deepslate-Retain-Zero-Data` is sent without the Enterprise feature.
 
-Sessions on a [preview model](/opal#enable-a-preview-model) always use full data retention. For a preview model, the handshake fails with `400` when a header restricts retention: `X-Deepslate-Retain-Zero-Data: true` or `X-Deepslate-Retain-Audio: false`.
+Sessions on a [preview model](/opal#enable-a-preview-model) always use full data retention. For a preview model, the handshake fails with `400` when a header restricts retention: `X-Deepslate-Retain-Zero-Data: true` or `X-Deepslate-Retain-Audio: false`. The `403` check runs first. An organization without the Enterprise feature that sends `X-Deepslate-Retain-Zero-Data` gets `403`.
 
 ## Initialize Session
 
