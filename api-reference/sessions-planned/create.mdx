@@ -1,0 +1,37 @@
+---
+title: 'Create Planned Session'
+openapi: 'POST /api/v1/vendors/{vendorId}/organizations/{organizationId}/sessions-planned'
+---
+
+A planned session is one outbound call that an agent places. The platform dials a plan when all of these conditions hold:
+
+- `state` is `PLANNED`. A new plan is `UNPLANNED` unless you send `"state": "PLANNED"`.
+- The plan has no linked session yet. Each plan is dialed at most once, so create a new plan to call a number again.
+- The current time in `timezone` is inside the window that `allowedMinutesBegin` and `allowedMinutes` define. Without both fields, any time of day is allowed.
+- If `onlyWeekdays` is `true`, the current day in `timezone` is Monday to Friday.
+- The SIP credentials of the agent's phone number have a free outbound slot, and the organization is below its concurrent session limit.
+
+The platform dials queued plans oldest first. Once dialing starts, `linkedSessionId` holds the ID of the new session. Use [Get Session](/api-reference/sessions/get) to read its state, summary, and recording flags.
+
+<Note>
+For call event hooks of this call, `callId` is the planned session `id`, and `sessionId` is the `linkedSessionId`. See [Call Event Hooks](/api-reference/call-event-hooks) for which hooks fire on agent calls.
+</Note>
+
+## Example
+
+This plan calls a number on weekdays between 09:00 and 17:00 Berlin time and fills the `{{customer_name}}` placeholder in the agent's prompt.
+
+```json
+{
+  "agentId": "98765432-10fe-dcba-9876-543210fedcba",
+  "targetNumber": "+4917612345678",
+  "timezone": "Europe/Berlin",
+  "allowedMinutesBegin": 540,
+  "allowedMinutes": 480,
+  "onlyWeekdays": true,
+  "parameters": {
+    "customer_name": "Erika Mustermann"
+  },
+  "state": "PLANNED"
+}
+```

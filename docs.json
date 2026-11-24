@@ -118,7 +118,31 @@
             ]
           },
           {
-            "group": "Agent Tasks",
+            "group": "Planned Sessions",
+            "pages": [
+              "api-reference/sessions-planned/list",
+              "api-reference/sessions-planned/create",
+              "api-reference/sessions-planned/get",
+              "api-reference/sessions-planned/update",
+              "api-reference/sessions-planned/delete"
+            ]
+          },
+          {
+            "group": "Sessions",
+            "pages": [
+              "api-reference/sessions/list",
+              "api-reference/sessions/get",
+              "api-reference/sessions/messages",
+              "api-reference/sessions/recording",
+              "api-reference/sessions/recording-stereo",
+              "api-reference/sessions/telemetry",
+              "api-reference/sessions/sip-timeline",
+              "api-reference/sessions/events",
+              "api-reference/sessions/delete"
+            ]
+          },
+          {
+            "group": "Agent Tasks (deprecated)",
             "pages": [
               "api-reference/agent-tasks/list",
               "api-reference/agent-tasks/create",
@@ -130,11 +154,7 @@
           {
             "group": "Organizations",
             "pages": [
-              "api-reference/organizations/list",
-              "api-reference/organizations/create",
-              "api-reference/organizations/get",
-              "api-reference/organizations/update",
-              "api-reference/organizations/delete"
+              "api-reference/organizations/list"
             ]
           },
           {
@@ -162,11 +182,28 @@
           {
             "group": "LLM Generation Strategies",
             "pages": [
-              "api-reference/llm-generation-strategies/list",
-              "api-reference/llm-generation-strategies/create",
-              "api-reference/llm-generation-strategies/get",
-              "api-reference/llm-generation-strategies/update",
-              "api-reference/llm-generation-strategies/delete"
+              "api-reference/llm-generation-strategies/v2/list",
+              "api-reference/llm-generation-strategies/v2/create",
+              "api-reference/llm-generation-strategies/v2/get",
+              "api-reference/llm-generation-strategies/v2/update",
+              "api-reference/llm-generation-strategies/v2/delete",
+              {
+                "group": "v1 (deprecated)",
+                "pages": [
+                  "api-reference/llm-generation-strategies/list",
+                  "api-reference/llm-generation-strategies/create",
+                  "api-reference/llm-generation-strategies/get",
+                  "api-reference/llm-generation-strategies/update",
+                  "api-reference/llm-generation-strategies/delete"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Voices",
+            "pages": [
+              "api-reference/voices/list",
+              "api-reference/voices/get"
             ]
           }
         ]

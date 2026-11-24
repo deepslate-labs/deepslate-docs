@@ -3,20 +3,38 @@ title: 'Call Event Hooks'
 description: 'Receive webhook notifications when calls start and end'
 ---
 
-Call Event Hooks are outbound HTTP webhooks that fire at specific points in a call's lifecycle. When a call starts or ends, the platform sends an HTTP request with a JSON payload to every URL registered on that Assistant or Agent, using the HTTP method configured for that hook (`POST` by default). Use them to trigger workflows, sync conversation data, send transcripts to your CRM, or any other external integration.
+Call Event Hooks are outbound HTTP webhooks that fire at specific points in a call's lifecycle. When a call starts or ends, the platform sends an HTTP request with a JSON payload to every URL registered on that Assistant or Agent. The request uses the HTTP method configured for that hook, `POST` by default. Use hooks to trigger workflows, sync conversation data, or send transcripts to your CRM.
 
 ## Hook types
 
 | Type | Fires when |
 |------|-----------|
-| `call_started` | The call is connected and audio has begun |
-| `call_concluded` | The call has ended — includes the full conversation transcript, summaries, and call recording |
+| `call_started` | An assistant call is connected and audio has begun. Does not fire for agent calls. |
+| `call_concluded` | An answered call has ended. Includes the conversation transcript, the summaries, and the call recording. |
+
+<Warning>
+Agent calls (outbound calls from [planned sessions](/api-reference/sessions-planned/create)) have two limitations:
+
+- `call_started` never fires for agent calls. A `call_started` hook on an agent is stored but not delivered.
+- `call_concluded` fires only when the callee answers. A call that is not answered, is busy, or fails before it connects sends no hook.
+
+To track every dial attempt, read the plan's `linkedSessionId` and check the session with [Get Session](/api-reference/sessions/get), or subscribe to [session events](/api-reference/sessions/events).
+</Warning>
+
+## Call IDs
+
+`callId` identifies the call that a hook belongs to. Its value depends on who handled the call:
+
+| Handled by | `callId` | `sessionId` |
+|------------|----------|-------------|
+| Assistant | The session ID. `callId` and `sessionId` are equal. | The session ID |
+| Agent | The [planned session](/api-reference/sessions-planned/get) ID. For deprecated agent tasks, this is the task ID, which is the same value. | The session that the plan created, also returned as `linkedSessionId` |
 
 ## Delivery
 
 ### Request format
 
-Webhooks are delivered using the configured HTTP method with `Content-Type: application/json`. Fields whose value is `null` are omitted from the payload.
+Webhooks are delivered using the configured HTTP method with `Content-Type: application/json`, plus any headers configured in `parameters.headers`. Fields whose value is `null` are omitted from the payload.
 
 <Note>
 The event payload is always sent as the JSON request body, regardless of the configured method, including for `GET` and `DELETE`. It is never sent as query parameters.
@@ -34,7 +52,7 @@ The platform guarantees at-least-once delivery. If your endpoint returns an HTTP
 | 4 | 8 minutes |
 | 5 | 16 minutes |
 | … | Doubles each time, capped at 24 hours |
-| 20 | Final attempt — permanently marked `FAILED` |
+| 20 | Final attempt. A failure marks the delivery `FAILED`. |
 
 After 20 failed attempts no further retries occur.
 
@@ -49,7 +67,7 @@ After 20 failed attempts no further retries occur.
 ### Idempotency
 
 <Note>
-Because deliveries are retried, your endpoint may receive the same event more than once. Use the `callId` field as an idempotency key on your side.
+Because deliveries are retried, your endpoint may receive the same event more than once. Use the combination of `type` and `callId` as an idempotency key on your side. `callId` alone is not unique, because `call_started` and `call_concluded` of one call share it.
 </Note>
 
 ## Payload reference
@@ -61,7 +79,7 @@ Every event payload contains these top-level fields.
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `string` | The event type: `call_started` or `call_concluded` |
-| `callId` | `string` | UUID that uniquely identifies this call |
+| `callId` | `string` | ID of the call. See [Call IDs](#call-ids). |
 | `sessionId` | `string` | ID of the session this call belongs to |
 | `transport` | `object \| null` | Information about how the call was connected |
 
@@ -69,9 +87,9 @@ Every event payload contains these top-level fields.
 
 | Field | Type | Present when |
 |-------|------|-------------|
-| `type` | `string` | Always — `"sip"` or `"websocket"` |
-| `calledNumber` | `string` | SIP only — the number that was dialled |
-| `callingNumber` | `string` | SIP only — the caller's number |
+| `type` | `string` | Always. `"sip"` or `"websocket"`. |
+| `calledNumber` | `string` | SIP only. The number that was dialled. |
+| `callingNumber` | `string` | SIP only. The caller's number. |
 
 <AccordionGroup>
   <Accordion title="SIP transport example">
@@ -96,16 +114,16 @@ Every event payload contains these top-level fields.
 
 ### `call_started`
 
-Fired immediately when the call is connected.
+Fired when an assistant call is connected. It does not fire for agent calls. In this event, `callId` and `sessionId` are equal.
 
 **Fields**
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `string` | `"call_started"` |
-| `callId` | `string` | UUID of the call |
+| `callId` | `string` | ID of the call. See [Call IDs](#call-ids). |
 | `sessionId` | `string` | ID of the session this call belongs to |
-| `startedAt` | `number \| null` | Call start time — Unix timestamp in **milliseconds** |
+| `startedAt` | `number \| null` | Call start time as a Unix timestamp in **milliseconds** |
 | `transport` | `object \| null` | Transport info |
 
 **Example payload**
@@ -113,7 +131,7 @@ Fired immediately when the call is connected.
 ```json
 {
   "type": "call_started",
-  "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "callId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "sessionId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "startedAt": 1740571200000,
   "transport": {
@@ -128,20 +146,21 @@ Fired immediately when the call is connected.
 
 ### `call_concluded`
 
-Fired after the call ends. Contains the complete conversation history, LLM-generated summaries, and an optional call recording.
+Fired after an answered call ends, also when the call ends with an error. Contains the conversation history, the LLM-generated summaries, and the call recording if recording is on. An agent call that is never answered sends no `call_concluded` event.
 
 **Fields**
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `type` | `string` | `"call_concluded"` |
-| `callId` | `string` | UUID of the call |
+| `callId` | `string` | ID of the call. See [Call IDs](#call-ids). |
 | `sessionId` | `string` | ID of the session this call belongs to |
-| `startedAt` | `number \| null` | Call start time — Unix timestamp in **milliseconds** |
-| `endedAt` | `number \| null` | Call end time — Unix timestamp in **milliseconds** |
+| `startedAt` | `number \| null` | Call start time as a Unix timestamp in **milliseconds** |
+| `endedAt` | `number \| null` | Call end time as a Unix timestamp in **milliseconds** |
 | `shortSummary` | `string \| null` | Short LLM-generated summary of the call |
 | `summary` | `string \| null` | Full LLM-generated summary of the call |
-| `callRecording` | `string \| null` | Base64-encoded audio recording of the entire call |
+| `callRecording` | `string \| null` | Base64-encoded MP3 recording of the entire call. Omitted when the Assistant or Agent has `recordCalls` set to `false`. |
+| `stereoRecordingUrl` | `string \| null` | URL of the stereo recording, with the caller on the left channel and the bot on the right. Fetch it with your API token, like [Get Stereo Session Recording](/api-reference/sessions/recording-stereo). Omitted when no stereo recording exists. |
 | `transport` | `object \| null` | Transport info |
 | `messages` | `array` | Ordered conversation history |
 
@@ -150,13 +169,14 @@ Fired after the call ends. Contains the complete conversation history, LLM-gener
 ```json
 {
   "type": "call_concluded",
-  "callId": "550e8400-e29b-41d4-a716-446655440000",
+  "callId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "sessionId": "b2d2cb40-5154-4852-ad2c-62bf0b93978a",
   "startedAt": 1740571200000,
   "endedAt": 1740571500000,
   "shortSummary": "Customer enquired about the Pro plan pricing.",
   "summary": "The customer called to ask about the pricing of the Pro subscription plan. The assistant explained the monthly and annual pricing options and offered to send a follow-up email with a detailed comparison.",
   "callRecording": "<base64-encoded-audio>",
+  "stereoRecordingUrl": "https://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{organizationId}/sessions/b2d2cb40-5154-4852-ad2c-62bf0b93978a/recording/stereo",
   "transport": {
     "type": "sip",
     "calledNumber": "+4930123456",
@@ -230,7 +250,7 @@ The `messages` array contains every turn of the conversation in chronological or
 
 <AccordionGroup>
   <Accordion title="text">
-    Represents a spoken utterance transcribed to text — from the caller (`USER`) or the assistant (`ASSISTANT`).
+    Represents a spoken utterance transcribed to text, from the caller (`USER`) or the assistant (`ASSISTANT`).
 
     | Field | Type | Description |
     |-------|------|-------------|
@@ -322,7 +342,7 @@ The `messages` array contains every turn of the conversation in chronological or
 
 ## Configuration
 
-Call Event Hooks are configured per Assistant or Agent — they are not a standalone resource.
+Call Event Hooks are configured per Assistant or Agent. They are not a standalone resource.
 
 ### Dashboard
 
@@ -335,7 +355,7 @@ To update a hook, edit the URL in place and save. To remove a hook, delete it fr
 
 ### REST API
 
-Hooks are managed through the Assistant and Agent endpoints. The examples below use the Assistant path — the Agent path follows the exact same structure.
+Hooks are managed through the Assistant and Agent endpoints. The examples below use the Assistant path. The Agent path has the same structure.
 
 ```
 /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants
@@ -343,7 +363,7 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
 ```
 
 <AccordionGroup>
-  <Accordion title="Read hooks — GET /{assistantId}">
+  <Accordion title="Read hooks: GET /{assistantId}">
     Retrieve the full Assistant configuration including its hooks.
 
     ```http
@@ -370,7 +390,10 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
           "type": "call_concluded",
           "parameters": {
             "url": "https://your-server.com/hooks/call-concluded",
-            "method": "POST"
+            "method": "POST",
+            "headers": [
+              { "name": "Authorization", "value": "Bearer your-secret" }
+            ]
           }
         }
       ]
@@ -384,11 +407,12 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
     | `id` | `string` | UUID of the hook instance |
     | `type` | `string` | `"call_started"` or `"call_concluded"` |
     | `parameters.url` | `string` | The target URL for this hook |
-    | `parameters.method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE` |
+    | `parameters.method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`. Defaults to `POST`. |
+    | `parameters.headers` | `array` | Optional. Extra HTTP headers sent with every delivery, as `name` and `value` pairs. |
   </Accordion>
 
-  <Accordion title="Create hooks — POST /assistants">
-    Include `callEventHooks` in the request body when creating an Assistant. Omit the `id` — it is assigned by the platform.
+  <Accordion title="Create hooks: POST /assistants">
+    Include `callEventHooks` in the request body when creating an Assistant. The example shows only `name` and `callEventHooks`. A real request needs every required Assistant field. Omit the `id`. The platform assigns it.
 
     ```http
     POST /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants
@@ -420,12 +444,16 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
     Returns the full Assistant object including the assigned hook `id` values.
   </Accordion>
 
-  <Accordion title="Update hooks — PUT /{assistantId}">
+  <Accordion title="Update hooks: PUT /{assistantId}">
+    <Warning>
+    `PUT` replaces the whole Assistant or Agent, not only its hooks. Send every field you want to keep. Omitted optional fields reset to their defaults. For example, a request without `recordCalls` turns call recording back on. See [Update Agent](/api-reference/agents/update) and [Update Assistant](/api-reference/assistants/update).
+    </Warning>
+
     The `PUT` endpoint replaces the entire `callEventHooks` array. The behaviour depends on whether `id` is included for each hook:
 
     | Scenario | What to do |
     |----------|-----------|
-    | Update an existing hook's URL | Include the hook's `id` with the new `url` |
+    | Update an existing hook | Include the hook's `id` with the new `parameters`. `headers` is replaced, so send it again to keep it. Omit `method` to keep the current method. |
     | Add a new hook | Omit the `id` field |
     | Remove a hook | Leave it out of the array |
 
@@ -433,6 +461,8 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
     PUT /api/v1/vendors/{vendorId}/organizations/{organizationId}/assistants/{assistantId}
     Content-Type: application/json
     ```
+
+    The example shows only `name` and `callEventHooks`. A real request contains the full Assistant, as returned by `GET`.
 
     ```json
     {

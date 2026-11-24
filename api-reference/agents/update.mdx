@@ -2,3 +2,14 @@
 title: 'Update Agent'
 openapi: 'PUT /api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}'
 ---
+
+<Warning>
+`PUT` replaces the whole agent. Fields you leave out do not keep their current values:
+
+- `recordCalls` defaults to `true`, so omitting it turns call recording back on.
+- `summaryShortPrompt` and `summaryLongPrompt` reset to the default prompts.
+- Call event hooks that are not in `callEventHooks` are removed. Extensions that are not in `extensions` are removed.
+- `greetingMessageTemplate` is cleared, which turns the greeting off. `greetingDelayMs` resets to 1000 and `greetingDiscardOnUserActivity` to `true`.
+
+To change one field, read the agent with [Get Agent](/api-reference/agents/get), change the field, and send the full object back. Keep the `id` of every hook and extension you want to keep.
+</Warning>
