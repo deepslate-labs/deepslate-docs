@@ -4,7 +4,9 @@ description: "Understand the Deepslate Realtime Platform's resource hierarchy an
 icon: 'sitemap'
 ---
 
-Deepslate Realtime is a platform for building and deploying voice AI at scale. Power inbound call handling with **Assistants** or automate outbound campaigns with **Agents** — all backed by Opal, our end-to-end speech-to-speech model.
+Deepslate Realtime is a platform for building and deploying voice AI at scale. Power inbound call handling with **Assistants** or automate outbound campaigns with **Agents**. Both run on Opal, our end-to-end speech-to-speech model.
+
+The dashboard calls assistants **inbound bots** and agents **outbound bots**. The API uses the names `assistant` and `agent` in its paths, fields, and session types.
 
 ## Voice AI Resources
 
@@ -13,7 +15,7 @@ Deepslate Realtime is a platform for building and deploying voice AI at scale. P
     **Inbound voice AI** that answers calls to your phone numbers. Configure behavior with system prompts, greetings, and integrations.
   </Card>
   <Card title="Agents" icon="phone-arrow-up-right">
-    **Outbound voice AI** that proactively calls customers. Assign tasks with dynamic data for personalized conversations.
+    **Outbound voice AI** that proactively calls customers. Create planned sessions with dynamic data for personalized conversations.
   </Card>
 </CardGroup>
 
@@ -23,7 +25,7 @@ Deepslate Realtime is a platform for building and deploying voice AI at scale. P
 flowchart TB
     O[Organization] --> A[Assistants]
     O --> AG[Agents]
-    AG --> T[Agent Tasks]
+    AG --> P[Planned Sessions]
 ```
 
 <AccordionGroup>
@@ -40,7 +42,7 @@ flowchart TB
   </Accordion>
 
   <Accordion title="Agents" icon="phone-arrow-up-right">
-    Voice AI for making **outbound calls**. Agents proactively call customers based on assigned tasks.
+    Voice AI for making **outbound calls**. Agents call customers based on planned sessions.
 
     **Configuration options:**
     | Setting | Description |
@@ -51,13 +53,14 @@ flowchart TB
     | Call event hooks | Trigger webhooks on call events |
   </Accordion>
 
-  <Accordion title="Agent Tasks" icon="list-check">
-    Individual outbound call tasks assigned to agents. Each task contains:
+  <Accordion title="Planned Sessions" icon="list-check">
+    One outbound call that an agent places. The dashboard shows them under **Planned Calls**. Each planned session contains:
 
-    - **Target number** — The phone number to call
-    - **User values** — Key-value pairs with call-specific data (e.g., customer name, callback reason)
+    - **Target number.** The phone number to call.
+    - **Parameters.** Key-value pairs that fill the placeholders in the agent's prompt, for example a customer name or a callback reason.
+    - **Call window.** Optional time of day, timezone, and weekday limits for dialing.
 
-    Tasks are processed by agents and can be created via the API for automated campaign workflows.
+    Create planned sessions through the [API](/api-reference/sessions-planned/create) for automated campaign workflows. They replace agent tasks, which are deprecated.
   </Accordion>
 </AccordionGroup>
 

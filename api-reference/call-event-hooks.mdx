@@ -13,7 +13,7 @@ Call Event Hooks are outbound HTTP webhooks that fire at specific points in a ca
 | `call_concluded` | An answered call has ended. Includes the conversation transcript, the summaries, and the call recording. |
 
 <Warning>
-Agent calls (outbound calls from [planned sessions](/api-reference/sessions-planned/create)) have two limitations:
+Agent calls (outbound calls from [planned sessions](/api-reference/sessions-planned/create)) have two limitations. The dashboard calls agents **outbound bots**.
 
 - `call_started` never fires for agent calls. A `call_started` hook on an agent is stored but not delivered.
 - `call_concluded` fires only when the callee answers. A call that is not answered, is busy, or fails before it connects sends no hook.
@@ -27,8 +27,8 @@ To track every dial attempt, read the plan's `linkedSessionId` and check the ses
 
 | Handled by | `callId` | `sessionId` |
 |------------|----------|-------------|
-| Assistant | The session ID. `callId` and `sessionId` are equal. | The session ID |
-| Agent | The [planned session](/api-reference/sessions-planned/get) ID. For deprecated agent tasks, this is the task ID, which is the same value. | The session that the plan created, also returned as `linkedSessionId` |
+| Assistant (inbound bot) | The session ID. `callId` and `sessionId` are equal. | The session ID |
+| Agent (outbound bot) | The [planned session](/api-reference/sessions-planned/get) ID. For deprecated agent tasks, this is the task ID, which is the same value. | The session that the plan created, also returned as `linkedSessionId` |
 
 ## Delivery
 
