@@ -9,17 +9,8 @@ Call Event Hooks are outbound HTTP webhooks that fire at specific points in a ca
 
 | Type | Fires when |
 |------|-----------|
-| `call_started` | An assistant call is connected and audio has begun. Does not fire for agent calls. |
+| `call_started` | An assistant call is connected and audio has begun. |
 | `call_concluded` | An answered call has ended. Includes the conversation transcript, the summaries, and the call recording. |
-
-<Warning>
-Agent calls (outbound calls from [planned sessions](/api-reference/sessions-planned/create)) have two limitations. The dashboard calls agents **outbound bots**.
-
-- `call_started` never fires for agent calls. A `call_started` hook on an agent is stored but not delivered.
-- `call_concluded` fires only when the callee answers. A call that is not answered, is busy, or fails before it connects sends no hook.
-
-To track every dial attempt, read the plan's `linkedSessionId` and check the session with [Get Session](/api-reference/sessions/get), or subscribe to [session events](/api-reference/sessions/events).
-</Warning>
 
 ## Call IDs
 
