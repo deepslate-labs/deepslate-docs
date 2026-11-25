@@ -7,5 +7,5 @@ deprecated: true
 <Warning>
 Agent tasks are deprecated. Use [planned sessions](/api-reference/sessions-planned/list) instead. A task ID is the same ID as the planned session ID.
 
-To queue an existing plan, call [Update Planned Session](/api-reference/sessions-planned/update) with `"state": "PLANNED"`. `PUT` replaces the plan, so send its current `agentId`, `targetNumber`, `timezone`, call window, `onlyWeekdays`, and `parameters` too. Other omitted fields reset to their defaults. An omitted or `null` `state` keeps the current state. A plan that already has a linked session is not dialed again.
+To queue an existing plan, call [Update Planned Session](/api-reference/sessions-planned/update) with `"state": "PLANNED"`. `PUT` replaces the plan, so send its current `agentId`, `targetNumber`, `timezone`, call window, `onlyWeekdays`, and `parameters` too. Other omitted fields reset to their defaults, and an omitted `parameters` deletes all stored values. An omitted or `null` `state` keeps the current state. A plan that already has a linked session is not dialed again.
 </Warning>

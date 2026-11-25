@@ -4506,7 +4506,8 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Values for the `{{placeholders}}` in the agent's system prompt and greeting."
+            "description": "Values for the `{{placeholders}}` in the agent's system prompt and greeting. Omitting it on `PUT` deletes all stored values.",
+            "default": {}
           },
           "state": {
             "type": [
