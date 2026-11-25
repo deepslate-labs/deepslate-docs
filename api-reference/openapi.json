@@ -4470,7 +4470,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Start of the call window as minute of the day (0-1439) in `timezone`. Set it together with `allowedMinutes`. `null` means no restriction."
+            "description": "Start of the call window as minute of the day (0-1439) in `timezone`. Set it together with `allowedMinutes`. If only one of the two ends up set, the plan has no time-of-day restriction."
           },
           "allowedMinutes": {
             "type": [
@@ -4478,7 +4478,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Length of the call window in minutes. The window may cross midnight. Set it together with `allowedMinutesBegin`. `null` means no restriction."
+            "description": "Length of the call window in minutes. The window may cross midnight. Set it together with `allowedMinutesBegin`. If only one of the two ends up set, the plan has no time-of-day restriction."
           },
           "allowedHoursBegin": {
             "type": [
@@ -4486,7 +4486,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Deprecated. Use `allowedMinutesBegin`. Start of the call window as hour of the day. Ignored when `allowedMinutesBegin` is set."
+            "description": "Deprecated. Use `allowedMinutesBegin`. Start of the call window as hour of the day. Used only when `allowedMinutesBegin` is `null` or missing."
           },
           "allowedHours": {
             "type": [
@@ -4494,7 +4494,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Deprecated. Use `allowedMinutes`. Length of the call window in hours. Ignored when `allowedMinutes` is set."
+            "description": "Deprecated. Use `allowedMinutes`. Length of the call window in hours. Used only when `allowedMinutes` is `null` or missing."
           },
           "onlyWeekdays": {
             "type": "boolean",
@@ -4515,9 +4515,10 @@
             ],
             "enum": [
               "UNPLANNED",
-              "PLANNED"
+              "PLANNED",
+              null
             ],
-            "description": "`UNPLANNED`: the plan is stored but not dialed. `PLANNED`: the plan is queued and dialed when its call window opens and capacity is free. Defaults to `UNPLANNED` on create. Omit it on `PUT` to keep the current state."
+            "description": "`UNPLANNED`: the plan is stored but not dialed. `PLANNED`: the plan is queued and dialed when its call window opens and capacity is free. Defaults to `UNPLANNED` on create. Omit it or send `null` on `PUT` to keep the current state."
           }
         },
         "required": [
@@ -4570,7 +4571,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Start of the call window as minute of the day (0-1439) in `timezone`. Set it together with `allowedMinutes`. `null` means no restriction."
+            "description": "Start of the call window as minute of the day (0-1439) in `timezone`. Set it together with `allowedMinutes`. If only one of the two ends up set, the plan has no time-of-day restriction."
           },
           "allowedMinutes": {
             "type": [
@@ -4578,7 +4579,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Length of the call window in minutes. The window may cross midnight. Set it together with `allowedMinutesBegin`. `null` means no restriction."
+            "description": "Length of the call window in minutes. The window may cross midnight. Set it together with `allowedMinutesBegin`. If only one of the two ends up set, the plan has no time-of-day restriction."
           },
           "allowedHoursBegin": {
             "type": [
@@ -4586,7 +4587,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Deprecated. Use `allowedMinutesBegin`. Start of the call window as hour of the day. Ignored when `allowedMinutesBegin` is set."
+            "description": "Deprecated. Use `allowedMinutesBegin`. Start of the call window as hour of the day. Used only when `allowedMinutesBegin` is `null` or missing."
           },
           "allowedHours": {
             "type": [
@@ -4594,7 +4595,7 @@
               "null"
             ],
             "format": "int32",
-            "description": "Deprecated. Use `allowedMinutes`. Length of the call window in hours. Ignored when `allowedMinutes` is set."
+            "description": "Deprecated. Use `allowedMinutes`. Length of the call window in hours. Used only when `allowedMinutes` is `null` or missing."
           },
           "onlyWeekdays": {
             "type": "boolean",
@@ -4922,7 +4923,6 @@
                   "PATCH",
                   "DELETE"
                 ],
-                "default": "POST",
                 "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
@@ -5146,7 +5146,6 @@
                   "PATCH",
                   "DELETE"
                 ],
-                "default": "POST",
                 "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
@@ -5834,7 +5833,6 @@
                   "PATCH",
                   "DELETE"
                 ],
-                "default": "POST",
                 "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
@@ -6304,7 +6302,6 @@
                   "PATCH",
                   "DELETE"
                 ],
-                "default": "POST",
                 "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {

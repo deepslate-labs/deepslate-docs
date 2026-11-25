@@ -7,5 +7,10 @@ deprecated: true
 <Warning>
 Agent tasks are deprecated. Use [Create Planned Session](/api-reference/sessions-planned/create) instead. A task ID is the same ID as the planned session ID.
 
-`onlyWeekdays` defaults to `true` for tasks and to `false` for planned sessions. Send `"onlyWeekdays": true` to keep weekday-only dialing.
+Map the task request to the planned session request like this:
+
+- Send `targetNumber` unchanged, and move `agentId` from the URL into the body.
+- Rename `userValues` to `parameters`, for example `"parameters": {"customer_name": "Erika Mustermann"}`.
+- Replace `"execute": true` with `"state": "PLANNED"`. Tasks are scheduled unless `execute` is `false`, but a planned session without `state` is stored as `UNPLANNED` and is not dialed.
+- `onlyWeekdays` defaults to `true` for tasks and to `false` for planned sessions. Send `"onlyWeekdays": true` to keep weekday-only dialing.
 </Warning>

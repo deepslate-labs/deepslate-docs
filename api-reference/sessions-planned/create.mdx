@@ -7,7 +7,7 @@ A planned session is one outbound call that an agent places. The dashboard shows
 
 - `state` is `PLANNED`. A new plan is `UNPLANNED` unless you send `"state": "PLANNED"`.
 - The plan has no linked session yet. Each plan is dialed at most once, so create a new plan to call a number again.
-- The current time in `timezone` is inside the window that `allowedMinutesBegin` and `allowedMinutes` define. The deprecated `allowedHoursBegin` and `allowedHours` fields set the window when the minute fields are missing. Without a window, any time of day is allowed.
+- The current time in `timezone` is inside the window that `allowedMinutesBegin` and `allowedMinutes` define. Each minute field falls back to its deprecated hour field, `allowedHoursBegin` or `allowedHours`, when it is missing or `null`. If the start or the length is still unset after that, any time of day is allowed.
 - If `onlyWeekdays` is `true`, the current day in `timezone` is Monday to Friday.
 - The SIP credentials of the agent's phone number have a free outbound slot, and the organization is below its concurrent session limit.
 
