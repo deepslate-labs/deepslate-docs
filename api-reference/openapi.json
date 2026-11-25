@@ -2273,7 +2273,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'createdAt,desc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "array",
@@ -3349,7 +3349,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'createdAt,desc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "array",
@@ -3819,7 +3819,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort is 'createdAt,desc'. Multiple sort criteria are supported.",
             "required": false,
             "schema": {
               "type": "array",
@@ -4067,9 +4067,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type. For `phonebot-v2.1`, `voice.voiceId` is the `id` of a voice from [List voices](/api-reference/voices/list).",
             "example": {
               "model": "opal-v2.1",
@@ -4124,9 +4122,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type. For `phonebot-v2.1`, `voice.voiceId` is the `id` of a voice from [List voices](/api-reference/voices/list).",
             "example": {
               "model": "opal-v2.1",
@@ -4253,7 +4249,7 @@
           "maxAgentTasks": {
             "type": "integer",
             "format": "int32",
-            "default": "10",
+            "default": 10,
             "description": "Maximum simultaneous agent tasks allowed for these credentials.",
             "example": 10,
             "minimum": 1
@@ -4462,26 +4458,41 @@
             "description": "Phone number to call."
           },
           "timezone": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "IANA timezone for the call window and `onlyWeekdays`. Defaults to `Europe/Berlin`."
           },
           "allowedMinutesBegin": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Start of the call window as minute of the day (0-1439) in `timezone`. Set it together with `allowedMinutes`. `null` means no restriction."
           },
           "allowedMinutes": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Length of the call window in minutes. The window may cross midnight. Set it together with `allowedMinutesBegin`. `null` means no restriction."
           },
           "allowedHoursBegin": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Deprecated. Use `allowedMinutesBegin`. Start of the call window as hour of the day. Ignored when `allowedMinutesBegin` is set."
           },
           "allowedHours": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Deprecated. Use `allowedMinutes`. Length of the call window in hours. Ignored when `allowedMinutes` is set."
           },
@@ -4498,7 +4509,10 @@
             "description": "Values for the `{{placeholders}}` in the agent's system prompt and greeting."
           },
           "state": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "enum": [
               "UNPLANNED",
               "PLANNED"
@@ -4551,22 +4565,34 @@
             "description": "IANA timezone for the call window and `onlyWeekdays`. Defaults to `Europe/Berlin`."
           },
           "allowedMinutesBegin": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Start of the call window as minute of the day (0-1439) in `timezone`. Set it together with `allowedMinutes`. `null` means no restriction."
           },
           "allowedMinutes": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Length of the call window in minutes. The window may cross midnight. Set it together with `allowedMinutesBegin`. `null` means no restriction."
           },
           "allowedHoursBegin": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Deprecated. Use `allowedMinutesBegin`. Start of the call window as hour of the day. Ignored when `allowedMinutesBegin` is set."
           },
           "allowedHours": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Deprecated. Use `allowedMinutes`. Length of the call window in hours. Ignored when `allowedMinutes` is set."
           },
@@ -4592,7 +4618,10 @@
             "description": "Time of the last update."
           },
           "linkedSessionId": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "ID of the session that the call created, once dialing has started. A plan with a linked session is never dialed again."
           }
         },
@@ -4657,9 +4686,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type.",
             "example": {
               "model": "opal-v2.1",
@@ -4717,9 +4744,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type.",
             "example": {
               "model": "opal-v2.1",
@@ -4829,11 +4854,17 @@
             }
           },
           "summaryShortPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the short call summary. `null` uses the default prompt."
           },
           "summaryLongPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the long call summary. `null` uses the default prompt."
           },
           "recordCalls": {
@@ -4857,7 +4888,10 @@
         "description": "Configuration for a Call Event Hook during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
         "properties": {
           "id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Unique identifier (UUID) of the call event hook instance to update. If null or missing, a new hook is created.",
             "example": "b00bface-1337-badd-cafe-d00df00dcafe"
           },
@@ -4872,7 +4906,7 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Hook parameters. `url` is required. `method` defaults to `POST`.",
+            "description": "Hook parameters. `url` is required. A new hook without `method` uses `POST`. An update of an existing hook without `method` keeps its current method. `headers` is always replaced.",
             "properties": {
               "url": {
                 "type": "string",
@@ -4889,7 +4923,7 @@
                   "DELETE"
                 ],
                 "default": "POST",
-                "description": "HTTP method of the webhook request."
+                "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
                 "type": "array",
@@ -4936,7 +4970,10 @@
         "description": "Configuration for an LLM Extension during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
         "properties": {
           "id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Unique identifier (UUID) of the LLM extension instance to update. If null or missing, a new extension is created.",
             "example": "deadbeef-cafe-babe-feed-faceabadb001"
           },
@@ -4947,9 +4984,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Specific parameters for this extension instance. Required for both create and update.",
             "example": {
               "kb_url": "https://new-kb.example.com/api",
@@ -4986,7 +5021,7 @@
             "example": {
               "customer_name": "STRING",
               "product_interest": "STRING",
-              "order_id": "NUMBER",
+              "order_id": "INTEGER",
               "zip_code": "STRING"
             }
           },
@@ -5020,11 +5055,17 @@
             }
           },
           "summaryShortPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the short call summary. `null` uses the default prompt."
           },
           "summaryLongPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the long call summary. `null` uses the default prompt."
           },
           "recordCalls": {
@@ -5034,13 +5075,16 @@
             "default": true
           },
           "greetingMessageTemplate": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Text spoken once shortly after the callee answers, with the same {{placeholders}} as the system prompt. Null or blank disables the greeting."
           },
           "greetingDelayMs": {
             "type": "integer",
             "format": "int32",
-            "default": "1000",
+            "default": 1000,
             "description": "Milliseconds between the callee answering and the greeting.",
             "example": 1000,
             "maximum": 3000,
@@ -5048,7 +5092,7 @@
           },
           "greetingDiscardOnUserActivity": {
             "type": "boolean",
-            "default": "true",
+            "default": true,
             "description": "Whether the greeting is dropped when the callee speaks before the delay elapses. When false, the greeting plays at the delay regardless, and anything the callee says before it has finished is not heard by the bot.",
             "example": true
           }
@@ -5068,7 +5112,10 @@
         "description": "Configuration for a Call Event Hook during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
         "properties": {
           "id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Unique identifier (UUID) of the call event hook instance to update. If null or missing, a new hook is created.",
             "example": "b00bface-1337-badd-cafe-d00df00dcafe"
           },
@@ -5083,7 +5130,7 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Hook parameters. `url` is required. `method` defaults to `POST`.",
+            "description": "Hook parameters. `url` is required. A new hook without `method` uses `POST`. An update of an existing hook without `method` keeps its current method. `headers` is always replaced.",
             "properties": {
               "url": {
                 "type": "string",
@@ -5100,7 +5147,7 @@
                   "DELETE"
                 ],
                 "default": "POST",
-                "description": "HTTP method of the webhook request."
+                "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
                 "type": "array",
@@ -5147,7 +5194,10 @@
         "description": "Configuration for an LLM Extension during an update operation. ID (UUID) is optional (null/missing to create, present to update).",
         "properties": {
           "id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Unique identifier (UUID) of the LLM extension instance to update. If null or missing, a new extension is created.",
             "example": "deadbeef-cafe-babe-feed-faceabadb001"
           },
@@ -5158,9 +5208,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Specific parameters for this extension instance. Required for both create and update.",
             "example": {
               "crm_system_url": "https://updated-crm.example.com/api",
@@ -5189,9 +5237,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type. For `phonebot-v2.1`, `voice.voiceId` is the `id` of a voice from [List voices](/api-reference/voices/list).",
             "example": {
               "model": "opal-v2.1",
@@ -5470,9 +5516,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Type-specific configuration parameters for the strategy. Structure depends on the strategy type.",
             "example": {
               "model": "opal-v2.1",
@@ -5548,11 +5592,17 @@
             }
           },
           "summaryShortPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the short call summary. `null` uses the default prompt."
           },
           "summaryLongPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the long call summary. `null` uses the default prompt."
           },
           "recordCalls": {
@@ -5586,7 +5636,7 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Hook parameters. `url` is required. `method` defaults to `POST`.",
+            "description": "Hook parameters. `url` is required. A new hook without `method` uses `POST`. An update of an existing hook without `method` keeps its current method. `headers` is always replaced.",
             "properties": {
               "url": {
                 "type": "string",
@@ -5603,7 +5653,7 @@
                   "DELETE"
                 ],
                 "default": "POST",
-                "description": "HTTP method of the webhook request."
+                "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
                 "type": "array",
@@ -5656,9 +5706,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Specific parameters for this extension instance (structure depends on the extension type).",
             "example": {
               "kb_url": "https://kb.example.com/api",
@@ -5720,11 +5768,17 @@
             "example": "Hello! How can I help you with our products today?"
           },
           "summaryShortPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the short call summary. `null` uses the default prompt."
           },
           "summaryLongPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the long call summary. `null` uses the default prompt."
           },
           "recordCalls": {
@@ -5764,7 +5818,7 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Hook parameters. `url` is required. `method` defaults to `POST`.",
+            "description": "Hook parameters. `url` is required. A new hook without `method` uses `POST`. An update of an existing hook without `method` keeps its current method. `headers` is always replaced.",
             "properties": {
               "url": {
                 "type": "string",
@@ -5781,7 +5835,7 @@
                   "DELETE"
                 ],
                 "default": "POST",
-                "description": "HTTP method of the webhook request."
+                "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
                 "type": "array",
@@ -5845,9 +5899,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Specific parameters for this extension instance (structure depends on the extension type). Null values may be present.",
             "example": {
               "kb_url": "https://kb.example.com/api",
@@ -5920,7 +5972,7 @@
             "example": {
               "customer_name": "STRING",
               "product_interest": "STRING",
-              "order_id": "NUMBER"
+              "order_id": "INTEGER"
             }
           },
           "systemPromptTemplate": {
@@ -5953,11 +6005,17 @@
             }
           },
           "summaryShortPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the short call summary. `null` uses the default prompt."
           },
           "summaryLongPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the long call summary. `null` uses the default prompt."
           },
           "recordCalls": {
@@ -5967,13 +6025,16 @@
             "default": true
           },
           "greetingMessageTemplate": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Text spoken once shortly after the callee answers, with the same {{placeholders}} as the system prompt. Null or blank disables the greeting."
           },
           "greetingDelayMs": {
             "type": "integer",
             "format": "int32",
-            "default": "1000",
+            "default": 1000,
             "description": "Milliseconds between the callee answering and the greeting.",
             "example": 1000,
             "maximum": 3000,
@@ -5981,7 +6042,7 @@
           },
           "greetingDiscardOnUserActivity": {
             "type": "boolean",
-            "default": "true",
+            "default": true,
             "description": "Whether the greeting is dropped when the callee speaks before the delay elapses. When false, the greeting plays at the delay regardless, and anything the callee says before it has finished is not heard by the bot.",
             "example": true
           }
@@ -6011,7 +6072,7 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Hook parameters. `url` is required. `method` defaults to `POST`.",
+            "description": "Hook parameters. `url` is required. A new hook without `method` uses `POST`. An update of an existing hook without `method` keeps its current method. `headers` is always replaced.",
             "properties": {
               "url": {
                 "type": "string",
@@ -6028,7 +6089,7 @@
                   "DELETE"
                 ],
                 "default": "POST",
-                "description": "HTTP method of the webhook request."
+                "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
                 "type": "array",
@@ -6081,9 +6142,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Specific parameters for this extension instance (structure depends on the extension type).",
             "example": {
               "crm_system_url": "https://mycrm.example.com/api",
@@ -6130,7 +6189,7 @@
             "example": {
               "customer_name": "STRING",
               "product_interest": "STRING",
-              "order_id": "NUMBER"
+              "order_id": "INTEGER"
             }
           },
           "llmAudioContentGenerationStrategyId": {
@@ -6158,11 +6217,17 @@
             }
           },
           "summaryShortPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the short call summary. `null` uses the default prompt."
           },
           "summaryLongPrompt": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Custom prompt for the long call summary. `null` uses the default prompt."
           },
           "recordCalls": {
@@ -6171,7 +6236,10 @@
             "example": true
           },
           "greetingMessageTemplate": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Text spoken once shortly after the callee answers. Null when the greeting is off."
           },
           "greetingDelayMs": {
@@ -6220,7 +6288,7 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Hook parameters. `url` is required. `method` defaults to `POST`.",
+            "description": "Hook parameters. `url` is required. A new hook without `method` uses `POST`. An update of an existing hook without `method` keeps its current method. `headers` is always replaced.",
             "properties": {
               "url": {
                 "type": "string",
@@ -6237,7 +6305,7 @@
                   "DELETE"
                 ],
                 "default": "POST",
-                "description": "HTTP method of the webhook request."
+                "description": "HTTP method of the webhook request. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method."
               },
               "headers": {
                 "type": "array",
@@ -6301,9 +6369,7 @@
           },
           "parameters": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            },
+            "additionalProperties": {},
             "description": "Specific parameters for this extension instance (structure depends on the extension type).",
             "example": {
               "crm_system_url": "https://mycrm.example.com/api",
@@ -7023,8 +7089,7 @@
             "enum": [
               "RUNNING",
               "FINISHED",
-              "FAILED",
-              "TIMEOUT"
+              "FAILED"
             ],
             "description": "Current state of the session."
           },
@@ -7918,11 +7983,7 @@
           "type": {
             "type": "string",
             "enum": [
-              "ASSISTANT",
-              "AGENT",
-              "REALTIME",
-              "VAD",
-              "TTS"
+              "ASSISTANT"
             ],
             "description": "Session type. `AGENT` sessions are outbound calls from planned sessions. `ASSISTANT` sessions are inbound calls."
           },
@@ -7931,8 +7992,7 @@
             "enum": [
               "RUNNING",
               "FINISHED",
-              "FAILED",
-              "TIMEOUT"
+              "FAILED"
             ],
             "description": "Current state of the session."
           },
@@ -8022,11 +8082,7 @@
           "type": {
             "type": "string",
             "enum": [
-              "ASSISTANT",
-              "AGENT",
-              "REALTIME",
-              "VAD",
-              "TTS"
+              "AGENT"
             ],
             "description": "Session type. `AGENT` sessions are outbound calls from planned sessions. `ASSISTANT` sessions are inbound calls."
           },
@@ -8035,8 +8091,7 @@
             "enum": [
               "RUNNING",
               "FINISHED",
-              "FAILED",
-              "TIMEOUT"
+              "FAILED"
             ],
             "description": "Current state of the session."
           },
@@ -8131,11 +8186,7 @@
           "type": {
             "type": "string",
             "enum": [
-              "ASSISTANT",
-              "AGENT",
-              "REALTIME",
-              "VAD",
-              "TTS"
+              "REALTIME"
             ],
             "description": "Session type. `AGENT` sessions are outbound calls from planned sessions. `ASSISTANT` sessions are inbound calls."
           },
@@ -8144,8 +8195,7 @@
             "enum": [
               "RUNNING",
               "FINISHED",
-              "FAILED",
-              "TIMEOUT"
+              "FAILED"
             ],
             "description": "Current state of the session."
           },
@@ -8226,11 +8276,7 @@
           "type": {
             "type": "string",
             "enum": [
-              "ASSISTANT",
-              "AGENT",
-              "REALTIME",
-              "VAD",
-              "TTS"
+              "VAD"
             ],
             "description": "Session type. `AGENT` sessions are outbound calls from planned sessions. `ASSISTANT` sessions are inbound calls."
           },
@@ -8239,8 +8285,7 @@
             "enum": [
               "RUNNING",
               "FINISHED",
-              "FAILED",
-              "TIMEOUT"
+              "FAILED"
             ],
             "description": "Current state of the session."
           },
@@ -8290,10 +8335,6 @@
           "type": {
             "type": "string",
             "enum": [
-              "ASSISTANT",
-              "AGENT",
-              "REALTIME",
-              "VAD",
               "TTS"
             ],
             "description": "Session type. `AGENT` sessions are outbound calls from planned sessions. `ASSISTANT` sessions are inbound calls."
@@ -8303,8 +8344,7 @@
             "enum": [
               "RUNNING",
               "FINISHED",
-              "FAILED",
-              "TIMEOUT"
+              "FAILED"
             ],
             "description": "Current state of the session."
           },
@@ -8345,24 +8385,39 @@
             "description": "Direction of the message."
           },
           "method": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "SIP method of a request, for example `INVITE`. `null` for responses."
           },
           "statusCode": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int32",
             "description": "Status code of a response. `null` for requests."
           },
           "fromUri": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "From URI."
           },
           "toUri": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "To URI."
           },
           "cseq": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "CSeq header."
           },
           "rawMessage": {
@@ -8412,6 +8467,18 @@
           "timestamp"
         ]
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API token from **API Keys** in the dashboard."
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
 }

@@ -20,7 +20,7 @@ curl -X GET "https://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{o
 
 ## Response format
 
-All responses follow a consistent structure:
+JSON responses follow a consistent structure. Some endpoints return other content: the recording endpoints return `audio/mpeg`, the session event endpoint streams `text/event-stream`, and the delete endpoints for sessions and planned sessions return `204` with no body.
 
 ```json
 {

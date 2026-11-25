@@ -65,7 +65,7 @@ Because deliveries are retried, your endpoint may receive the same event more th
 
 ### Shared fields
 
-Every event payload contains these top-level fields.
+Every event payload contains these top-level fields. Because fields with a `null` value are omitted, a field typed `| null` can be missing from a delivery. For example, `transport` is missing when the platform has no transport information.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -398,7 +398,7 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
     | `id` | `string` | UUID of the hook instance |
     | `type` | `string` | `"call_started"` or `"call_concluded"` |
     | `parameters.url` | `string` | The target URL for this hook |
-    | `parameters.method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`. Defaults to `POST`. |
+    | `parameters.method` | `string` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`. Defaults to `POST` for a new hook. Omitting it on an existing hook keeps the current method. |
     | `parameters.headers` | `array` | Optional. Extra HTTP headers sent with every delivery, as `name` and `value` pairs. |
   </Accordion>
 
@@ -437,7 +437,7 @@ Hooks are managed through the Assistant and Agent endpoints. The examples below 
 
   <Accordion title="Update hooks: PUT /{assistantId}">
     <Warning>
-    `PUT` replaces the whole Assistant or Agent, not only its hooks. Send every field you want to keep. Omitted optional fields reset to their defaults. For example, a request without `recordCalls` turns call recording back on. See [Update Agent](/api-reference/agents/update) and [Update Assistant](/api-reference/assistants/update).
+    `PUT` replaces the whole Assistant or Agent, not only its hooks. Send every field you want to keep. Omitted optional Assistant and Agent fields reset to their defaults. Hook parameters follow the rules in the table below. For example, a request without `recordCalls` turns call recording back on. See [Update Agent](/api-reference/agents/update) and [Update Assistant](/api-reference/assistants/update).
     </Warning>
 
     The `PUT` endpoint replaces the entire `callEventHooks` array. The behaviour depends on whether `id` is included for each hook:

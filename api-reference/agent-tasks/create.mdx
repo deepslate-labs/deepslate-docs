@@ -5,5 +5,7 @@ deprecated: true
 ---
 
 <Warning>
-Agent tasks are deprecated. Use [planned sessions](/api-reference/sessions-planned/list) instead. A task ID is the same ID as the planned session ID.
+Agent tasks are deprecated. Use [Create Planned Session](/api-reference/sessions-planned/create) instead. A task ID is the same ID as the planned session ID.
+
+`onlyWeekdays` defaults to `true` for tasks and to `false` for planned sessions. Send `"onlyWeekdays": true` to keep weekday-only dialing.
 </Warning>
