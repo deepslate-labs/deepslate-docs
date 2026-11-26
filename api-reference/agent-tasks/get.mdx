@@ -1,4 +1,9 @@
 ---
 title: 'Get Agent Task'
 openapi: 'GET /api/v1/vendors/{vendorId}/organizations/{organizationId}/agents/{agentId}/tasks/{taskId}'
+deprecated: true
 ---
+
+<Warning>
+Agent tasks are deprecated. Use [planned sessions](/api-reference/sessions-planned/list) instead. A task ID is the same ID as the planned session ID.
+</Warning>

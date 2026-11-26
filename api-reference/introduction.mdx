@@ -20,7 +20,7 @@ curl -X GET "https://app.deepslate.eu/api/v1/vendors/{vendorId}/organizations/{o
 
 ## Response format
 
-All responses follow a consistent structure:
+JSON responses follow a consistent structure. Some endpoints return other content: the recording endpoints return `audio/mpeg`, the session event endpoint streams `text/event-stream`, and the delete endpoints for sessions and planned sessions return `204` with no body.
 
 ```json
 {
@@ -54,7 +54,7 @@ List endpoints return paginated data:
 |-----------|------|---------|-------------|
 | `page` | integer | 0 | Page number (0-indexed) |
 | `size` | integer | 20 | Items per page |
-| `sort` | string | `name,asc` | Sort criteria (e.g., `name,desc`) |
+| `sort` | string | Depends on the endpoint | Sort criteria, for example `name,desc` |
 
 ## Path parameters
 
@@ -63,6 +63,8 @@ All resource endpoints use UUID identifiers:
 - `organizationId` - Organization identifier
 - `assistantId` - Assistant identifier
 - `agentId` - Agent identifier
+- `sessionId` - Session identifier
+- `planId` - Planned session identifier
 
 ## Error responses
 
