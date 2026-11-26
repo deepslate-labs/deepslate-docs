@@ -11,6 +11,8 @@ A planned session is one outbound call that an agent places. The dashboard shows
 - If `onlyWeekdays` is `true`, the current day in `timezone` is Monday to Friday.
 - The SIP credentials of the agent's phone number have a free outbound slot, and the organization is below its concurrent session limit.
 
+A window can cross midnight. For example, `"allowedMinutesBegin": 1320` and `"allowedMinutes": 180` allow calls from 22:00 to 01:00. The platform checks the weekday at dial time. With `onlyWeekdays` set to `true`, a Friday window that crosses midnight stops at midnight, and a Sunday window opens only at midnight.
+
 The platform dials queued plans oldest first. Once dialing starts, `linkedSessionId` holds the ID of the new session. Use [Get Session](/api-reference/sessions/get) to read its state, summary, and recording flags.
 
 <Note>
